@@ -398,6 +398,56 @@ API key set up via .env file, verified working.
 
 ---
 
+## 16:30 — Full pipeline ran successfully end-to-end
+
+Ran `python main.py` with `imazganim.co.il` as input. Full pipeline completed in ~3 minutes:
+- 14 sources scraped, 40,340 chars
+- Claude extracted structured `client_card.json` with all fields populated
+- Hebrew `client_card.md` generated for the producer
+- Personalized welcome message generated in Hebrew
+- 5-page draft website generated (index, services, about, areas, contact)
+- Dapei Zahav minisite generated
+- CRM entry logged as `ZAP-20260408131050`
+
+All outputs saved to `output/`. The automation works end-to-end with zero manual steps after running the script.
+
+---
+
+## 16:40 — Added asset discovery mode (Step 2 gap fix)
+
+Realized the pipeline required a URL as input — but a real CRM trigger would only have the client's name, phone, and category. The task says "סורקת את הנכסים הדיגיטליים השונים של הלקוח" (scans the various digital assets) — implying the system should find them, not receive them.
+
+Added `discover_assets(name, phone, location)` to `scraper.py`:
+- Searches DuckDuckGo with 4 targeted queries (phone-first works best for Israeli sites)
+- Collects candidate URLs from search results
+- **Cross-verifies each URL** by scraping it and checking the phone number appears on the page
+- Returns only verified URLs belonging to the right business
+
+Cross-verification is essential — there are multiple "Yigal" AC technicians in Israel. The phone number is the unique identifier. In a test run, the system correctly found `imazganim.co.il` and `prosites.co.il`, and correctly rejected `bakrayot.co.il` (different Yigal, different phone) automatically.
+
+Now two run modes:
+```
+python main.py --name "יגאל מזגנים" --phone "072-3977065" --location "קריות"  # discovery
+python main.py --url https://www.imazganim.co.il/                               # direct
+```
+
+Added `ddgs` (DuckDuckGo search library) to dependencies.
+
+---
+
+## 16:50 — Deployed live demos to Vercel
+
+Deployed the generated HTML output to Vercel so interviewers can click and see real results:
+
+- **Draft website:** https://yigal-mazganim.vercel.app
+- **Dapei Zahav minisite:** https://yigal-dapei-zahav.vercel.app
+
+These are the actual AI-generated outputs from running the pipeline against Yigal's real website. The interviewer can navigate the full 5-page site and see the minisite listing.
+
+Fix applied: Vercel serves `index.html` by default — renamed `minisite.html` to `index.html` in the minisite deployment folder.
+
+---
+
 ## 16:20 — Embedding frontend design principles into LLM prompts
 
 First pipeline run produced functional but generic-looking HTML. Asked whether we could use Claude Code's `/frontend-design` skill to improve the output. The skill is a Claude Code feature (injected into the system prompt) — it can't be used directly via the API.
