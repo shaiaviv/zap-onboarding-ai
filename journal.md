@@ -266,3 +266,85 @@ zap-onboarding-ai/
 ```
 
 Next: start building the scraper and pipeline.
+
+---
+
+## 15:35 — Adding a draft website to the pipeline
+
+Realized the automation shouldn't just prepare the account manager — it should also prepare something to SHOW the client. The task says the client bought a 5-page website. During the onboarding call, the Zap producer should be able to say: "here's a draft of what we're going to build for you."
+
+So the pipeline now generates a draft 5-page website from the scraped data — auto-generated HTML pages that the producer can present to the client as a preview of their investment. This makes the onboarding call a sales moment, not just a data-gathering call.
+
+The 5 pages:
+1. Home — business intro, tagline, hero section
+2. Services — installation, repair, cleaning, sales
+3. About — 15+ years experience, brands, the story
+4. Service Areas — all the Krayot cities + surrounding areas
+5. Contact — phone, email, address, contact form placeholder
+
+All content auto-generated from the scraped data using Claude. Output as simple HTML files the producer can open in a browser and show the client.
+
+---
+
+## 15:40 — Remembered the Dapei Zahav minisite
+
+Almost missed this — the task says the client bought TWO products: a 5-page website AND a Dapei Zahav minisite. The automation should draft both. We already know the exact structure of a Dapei Zahav minisite from when we scraped Aleksey's listing earlier (d.co.il/80344605/26250):
+- Business name, about section, services, service areas, hours, phone/WhatsApp, gallery, contact form, reviews section.
+
+So the pipeline also generates a draft Dapei Zahav profile — pre-filled with the client's extracted data, ready for the Zap producer to review and publish.
+
+---
+
+## 15:45 — Caught a missing requirement: "sent automatically to the client"
+
+Re-read the original Hebrew task word by word. The task says the onboarding script is "שנשלח אוטומטית ללקוח ומתועד במערכת ה-CRM" — sent automatically to the client AND logged in the CRM. We were only planning to log it.
+
+Discussed what "sent to the client" actually means. The call script itself is internal — it has notes and observations the client shouldn't see. What gets sent to the client is a **separate client-facing welcome message** that includes links to the draft website and Dapei Zahav minisite previews: "here's what we're building for you."
+
+This splits the outputs into two audiences:
+
+**Account manager (internal):**
+- Client Card — all extracted data, digital presence map, observations
+- Onboarding call script — talking points, what to highlight, what to ask
+
+**Client (auto-sent before the call):**
+- Personalized welcome message
+- Links to draft website + Dapei Zahav minisite previews
+- What to expect on the onboarding call
+
+**Final pipeline:**
+1. Scrape digital assets → raw text
+2. Client Card (internal) → structured JSON + Hebrew summary for the producer
+3. Draft Website → 5-page HTML
+4. Draft Dapei Zahav Minisite → structured profile matching d.co.il format
+5. Onboarding Script (internal) → talking points + call script for the account manager
+6. Client Welcome Message (client-facing) → auto-sent with links to drafts
+7. CRM Log → save everything
+
+---
+
+## 15:50 — Full scrape completed → clientinfo.md
+
+Scraped all verified digital assets using `requests` + `BeautifulSoup` and compiled into `clientinfo.md` (30,855 chars, 13 sections):
+
+1. imazganim.co.il — Home
+2. imazganim.co.il — Repair page
+3. imazganim.co.il — Installation page
+4. imazganim.co.il — Cleaning page
+5. imazganim.co.il — Sales page
+6. imazganim.co.il — Testimonials page
+7. imazganim.co.il — Contact page
+8. imazganim.co.il — Blog page
+9. WordPress (imazganim.wordpress.com)
+10. Prosites.co.il (encoding fixed from windows-1255)
+11. Google Maps (data extracted during research phase — can't scrape directly with requests)
+12. Yolasite (data from research phase — Cloudflare blocked direct scrape)
+13. Additional info from research (owner name, email, Instagram, Facebook, Dapei Zahav passive listing)
+
+Two assets required manual data entry from our earlier Playwright research:
+- Google Maps: can't scrape with simple requests (requires JS rendering)
+- Yolasite: Cloudflare protection returned 403
+
+This is the raw data that will feed into the Claude API for Client Card generation.
+
+Next: build the pipeline scripts.

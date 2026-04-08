@@ -58,6 +58,32 @@ These are the confirmed assets belonging to our demo client. Every asset was man
 - Comments where the logic isn't obvious, but don't over-document
 - Output should be in Hebrew where it makes sense (Client Card, onboarding script) since the end users are Israeli
 
+## Pipeline
+
+The full automation flow:
+
+1. **Scrape** — collect raw text from the client's verified digital assets
+2. **Client Card** (internal) — feed scraped text to Claude → structured JSON + readable Hebrew summary for the Zap producer
+3. **Draft Website** — feed Client Card to Claude → 5-page HTML website draft
+4. **Draft Dapei Zahav Minisite** — feed Client Card to Claude → structured profile matching d.co.il format
+5. **Onboarding Script** (internal) — feed Client Card to Claude → talking points + call script for the account manager
+6. **Client Welcome Message** (client-facing) — auto-generated personalized message sent to the client with links to draft website + Dapei Zahav preview
+7. **CRM Log** — save everything (client card, drafts, script, send confirmation) to a simulated CRM
+
+### Who sees what
+
+**Account manager (internal):**
+- Client Card — all extracted data, digital presence map, observations, notes (e.g., "Google Maps rating 3.4", "no existing Dapei Zahav presence")
+- Onboarding call script — talking points, what to highlight, what to ask
+
+**Client (auto-sent before the call):**
+- Personalized welcome message
+- Link to draft website preview — "here's what we're building for you"
+- Link to draft Dapei Zahav minisite preview — "here's your new listing"
+- What to expect on the onboarding call
+
+The client sees the drafts and thinks "they already started working on my stuff." The account manager walks into the call fully prepared. Both sides are ready.
+
 ## Project Structure (target)
 
 ```
@@ -69,11 +95,18 @@ zap-onboarding-ai/
 ├── scraper.py             # Scrapes digital assets
 ├── client_card.py         # Generates structured Client Card via LLM
 ├── onboarding_script.py   # Generates personalized call script via LLM
+├── website_generator.py   # Generates draft 5-page website via LLM
 ├── crm_logger.py          # Simulates CRM logging
 ├── output/                # Generated output files
 │   ├── client_card.json
 │   ├── client_card.md
-│   └── onboarding_script.md
+│   ├── onboarding_script.md
+│   └── website/           # Draft website
+│       ├── index.html
+│       ├── services.html
+│       ├── about.html
+│       ├── areas.html
+│       └── contact.html
 └── README.md              # Required for submission
 ```
 
