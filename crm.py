@@ -52,7 +52,7 @@ def log_to_crm(client_card, welcome_message, output_dir):
             "client_card_readable": "client_card.md",
             "welcome_message": "welcome_message.md",
             "draft_website": "website/",
-            "draft_minisite": "minisite/minisite.html",
+            "draft_minisite": "minisite/index.html",
         },
     }
 

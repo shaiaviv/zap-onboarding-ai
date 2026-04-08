@@ -20,7 +20,7 @@ import sys
 import json
 import argparse
 
-from scraper import scrape_client, scrape_multiple, discover_assets, format_scraped_data
+from scraper import scrape_client, scrape_multiple, discover_assets, format_scraped_data, collect_images
 from llm import (
     extract_client_card,
     generate_client_card_hebrew,
@@ -46,13 +46,19 @@ def save_file(path, content):
     print(f"  Saved: output/{path}")
 
 
-def run_pipeline(scraped_results):
+def run_pipeline(scraped_results, base_url=None):
     """
     Core pipeline: takes already-scraped results dict and runs
     extraction → generation → CRM logging.
     Called by both URL mode and discovery mode.
     """
     raw_text = format_scraped_data(scraped_results)
+
+    # Collect real images from the client's site for use in galleries
+    images = []
+    if base_url:
+        print("  Collecting images from client site...")
+        images = collect_images(base_url)
 
     # Step 2: Extract structured Client Card
     print(f"\n{'─' * 60}")
@@ -79,7 +85,7 @@ def run_pipeline(scraped_results):
     print("STEP 4: Generating draft website (AI)")
     print(f"{'─' * 60}")
     print("  Generating 5-page website draft...")
-    website_pages = generate_draft_website(client_card_json)
+    website_pages = generate_draft_website(client_card_json, images)
     for filename, html in website_pages.items():
         save_file(f"website/{filename}", html)
 
@@ -88,8 +94,8 @@ def run_pipeline(scraped_results):
     print("STEP 5: Generating draft Dapei Zahav minisite (AI)")
     print(f"{'─' * 60}")
     print("  Generating minisite draft...")
-    minisite_html = generate_draft_minisite(client_card_json)
-    save_file("minisite/minisite.html", minisite_html)
+    minisite_html = generate_draft_minisite(client_card_json, images)
+    save_file("minisite/index.html", minisite_html)
 
     # Step 6: CRM log
     print(f"\n{'─' * 60}")
@@ -146,17 +152,19 @@ def main():
         if not discovered_urls:
             print("\n  No verified assets found. Check business name / phone.")
             sys.exit(1)
+        # Use the first verified URL (most likely the client's own site) for image collection
+        base_url = discovered_urls[0]
         scraped = scrape_multiple(discovered_urls)
 
     else:
         # Direct URL mode
-        url = args.url or args.positional_url or DEMO_URL
+        base_url = args.url or args.positional_url or DEMO_URL
         print(f"  Mode: DIRECT URL")
         print(f"  Simulating CRM trigger: 'New client purchased package'")
-        print(f"  Client URL: {url}")
-        scraped = scrape_client(url)
+        print(f"  Client URL: {base_url}")
+        scraped = scrape_client(base_url)
 
-    run_pipeline(scraped)
+    run_pipeline(scraped, base_url=base_url)
 
 
 if __name__ == "__main__":

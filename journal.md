@@ -435,6 +435,36 @@ Added `ddgs` (DuckDuckGo search library) to dependencies.
 
 ---
 
+## 17:00 — Added real image scraping to the pipeline
+
+Noticed the Dapei Zahav minisite gallery was showing empty grey placeholder boxes — a significant visual gap that made the demo look unfinished.
+
+**Root cause:** The scraper was collecting text only. Images weren't being scraped, so the LLM had no real URLs to reference and defaulted to `<div>` placeholders.
+
+**Fix — two parts:**
+
+1. **`collect_images(base_url)`** added to `scraper.py` — crawls the client's own domain, finds all `<img>` tags pointing to hosted images (`.jpg`, `.jpeg`, `.png`, `.webp`), filters out data URIs and third-party CDNs, returns up to 8 images as `[{url, alt}]`.
+
+2. **Updated `llm.py`** — both `generate_draft_website()` and `generate_draft_minisite()` now accept an `images` list. A `_format_images()` helper converts the list into a prompt block like:
+   ```
+   REAL IMAGES FROM CLIENT'S SITE (use these URLs directly in <img> tags):
+     1. <img src="https://...installation.jpg" alt="התקנת מזגנים">
+     2. <img src="https://...repair.jpg" alt="תיקון מזגנים">
+   ```
+   The minisite prompt was updated to explicitly forbid placeholder boxes and use real `<img>` tags instead.
+
+Real images collected from imazganim.co.il:
+- `Air-Conditioning-Installation.jpg`
+- `Air-Conditioning-Repair.jpg`
+- `Air-Conditioning-Cleaning.jpg`
+- `Air-Conditioning-Brands.jpg`
+
+Redeployed the minisite to Vercel — gallery now shows real photos with hover-zoom and caption overlays.
+
+Also cleaned up: `minisite.html` removed, everything now lives at `minisite/index.html`.
+
+---
+
 ## 16:50 — Deployed live demos to Vercel
 
 Deployed the generated HTML output to Vercel so interviewers can click and see real results:

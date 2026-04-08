@@ -36,6 +36,8 @@ This prevents false positives. There are multiple "Yigal" AC technicians in Isra
 
 Verified URLs are then crawled in full — including all internal pages, satellite sites (WordPress, Weebly), and Israeli directory listings.
 
+The scraper also collects real images from the client's own domain — filtering out third-party CDNs, data URIs, and icons. These image URLs are passed directly into the LLM prompts so generated HTML uses `<img src="https://actual-client-site.co.il/photo.jpg">` instead of grey placeholder boxes.
+
 ### Step 2 — Extract Client Card
 All scraped text is fed into Claude with a structured extraction prompt. The model outputs a JSON object with:
 - Business name, owner, phone, email, address, region
@@ -172,7 +174,7 @@ output/
 │   ├── areas.html          — service areas
 │   └── contact.html        — contact page
 └── minisite/
-    └── index.html          — Dapei Zahav listing
+    └── index.html          — Dapei Zahav listing (with real gallery images)
 ```
 
 ---

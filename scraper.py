@@ -50,6 +50,49 @@ def scrape_url(url, encoding=None):
         return f"[ERROR scraping {url}: {e}]"
 
 
+def collect_images(base_url, max_images=8):
+    """
+    Collect real image URLs from a client's website.
+    Crawls the main site and internal pages, returns a list of absolute image URLs
+    that are hosted on the client's own domain (not CDNs, icons, or data URIs).
+    Used to populate galleries in the draft website and minisite.
+    """
+    base_domain = urlparse(base_url).netloc
+    found = {}  # url → alt text
+
+    urls_to_check = [base_url] + discover_internal_pages(base_url)
+
+    for page_url in urls_to_check:
+        if len(found) >= max_images:
+            break
+        try:
+            resp = requests.get(page_url, headers=HEADERS, timeout=TIMEOUT)
+            resp.encoding = resp.apparent_encoding
+            soup = BeautifulSoup(resp.text, "html.parser")
+            for img in soup.find_all("img"):
+                src = img.get("src", "")
+                if not src or src.startswith("data:"):
+                    continue
+                full_url = urljoin(page_url, src)
+                # Only keep images hosted on the client's own domain
+                if urlparse(full_url).netloc != base_domain:
+                    continue
+                # Skip tiny icons and logos
+                ext = full_url.split("?")[0].lower()
+                if not any(ext.endswith(e) for e in [".jpg", ".jpeg", ".png", ".webp"]):
+                    continue
+                if full_url not in found:
+                    found[full_url] = img.get("alt", "")
+                    if len(found) >= max_images:
+                        break
+        except Exception:
+            continue
+
+    result = [{"url": url, "alt": alt} for url, alt in found.items()]
+    print(f"  Collected {len(result)} images from {base_domain}")
+    return result
+
+
 def discover_internal_pages(base_url):
     """Find all internal links on the homepage."""
     try:
