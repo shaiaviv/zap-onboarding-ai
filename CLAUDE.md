@@ -1,5 +1,25 @@
 # CLAUDE.md — Project Instructions
 
+## Original Interview Prompt (verbatim)
+
+> .בחברתנו GenAI Exploration Lead – junior / Graduate Role במשרת התעניינותך על תודה
+> כחלק מתהליך המיון, נשמח למענה על המשימה .
+> בהצלחה!
+>
+> רקע: חברת זאפ מנהלת עבור מגוון לקוחות במשק הישראלי אתרי אינטרנט ונוכחות דיגיטלית דרך אתרי האינדקס של החברה.
+> אחד מהם הוא דפי זהב.
+> האתגר: עלייך לתאר או לבנות אב-טיפוס לתהליך Onboarding והקמה של לקוח עסקי חדש.
+> פרטים: הלקוח הינו טכנאי מזגנים אשר קנה אתר אינטרנט בן 5 עמודים ומיניסייט באתר דפי זהב באיזור הקריות.
+> הראה/י לנו איך את/ה בונה אוטומציה מבוססת AI שסורקת את הנכסים הדיגיטליים השונים של הלקוח, שולפת פרטי קשר
+> וקטגוריות מוצרים, ומנסחת עבור המפיק בזאפ 'כרטיס לקוח' מוכן הכולל את כל המידע הרלוונטי וכן תסריט שיחת
+> Onboarding מותאם אישית שנשלח אוטומטית ללקוח ומתועד במערכת ה- CRM.
+>
+> בהצלחה!
+
+**Key phrase:** "סורקת את הנכסים הדיגיטליים השונים של הלקוח" = scans the client's *various* digital assets — implying discovery, not just scraping a known URL.
+
+---
+
 ## What is this project?
 
 This is a prototype for a Zap hiring challenge (GenAI Exploration Lead — junior/graduate role). It demonstrates an AI-powered automation that onboards a new business client by scraping their existing digital assets, extracting structured data, and generating a Client Card + onboarding call script.
