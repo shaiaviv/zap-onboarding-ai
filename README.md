@@ -53,6 +53,19 @@ Claude generates a client-facing WhatsApp/email message, auto-sent the moment th
 ### Step 4 — Draft 5-Page Website
 Claude generates a complete 5-page HTML website — each page with its own layout spec and design direction. All content is populated from the extracted client data. No placeholder text.
 
+The first version of this step produced functional but visually generic HTML — the kind of output you'd expect from a basic "build me a website" prompt. To fix this, we extracted the design principles from Claude Code's `/frontend-design` skill and embedded them directly into the LLM system prompt sent via the API. The skill itself can't be called from outside Claude Code, but its guidelines can be — so we read them and baked them in.
+
+The embedded principles that shaped the output:
+
+- **Typography** — Google Fonts with a bold Hebrew display font (Heebo Black for headers, Heebo Light for body). Generic fonts like Arial, Inter, or system fonts are explicitly prohibited in the prompt.
+- **Color** — A dominant color with a sharp accent, defined as CSS custom properties in `:root`. The AC/cooling context led to deep navy + electric cyan — not a timid, evenly-distributed palette.
+- **Spatial composition** — Generous negative space, asymmetric hero sections, grid-breaking elements where they add surprise.
+- **Motion** — CSS transitions on hover states, staggered reveal animations on page load using `animation-delay`. No JavaScript animation libraries needed.
+- **Backgrounds & depth** — Gradient meshes, layered transparencies, textured backgrounds. Never flat solid white.
+- **Details** — Multi-layer `box-shadow`, intentional `border-radius`, custom-styled buttons, micro-interactions on interactive elements.
+
+Each of the 5 pages also has its own detailed spec in the prompt — the homepage gets an asymmetric hero with a prominent CTA, the services page is laid out for scannability, the about page leads with a large "15+" years figure, and so on. `max_tokens` was increased from 4096 to 8192 to give the model enough room to produce richer HTML without truncating.
+
 ### Step 5 — Draft Dapei Zahav Minisite
 Claude generates a single-page HTML file styled to match the real `d.co.il` listing format — yellow/gold branding, contact buttons, about section, service details, hours, gallery placeholders, and contact form. This is what the client's new Dapei Zahav page will look like.
 
