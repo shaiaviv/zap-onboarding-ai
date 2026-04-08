@@ -348,3 +348,72 @@ Two assets required manual data entry from our earlier Playwright research:
 This is the raw data that will feed into the Claude API for Client Card generation.
 
 Next: build the pipeline scripts.
+
+---
+
+## 16:00 — Revisiting the architecture after cross-referencing with Gemini
+
+Used Gemini to sanity-check our understanding of the task. Its breakdown aligned with ours but highlighted one thing we missed: **the trigger**. The automation should simulate starting from a CRM event ("new client purchased a package"), not just a URL we manually provide. The pipeline should be a repeatable script, not a one-time manual demo.
+
+Also simplified the output split. Gemini interpreted the "onboarding script" as the client-facing welcome message (not an internal call script). Re-reading the Hebrew, this makes more sense — "תסריט שיחת Onboarding מותאם אישית שנשלח אוטומטית ללקוח" is something sent TO the client. Dropped the internal call script — the Client Card already gives the producer everything they need.
+
+**Final pipeline (v3):**
+
+```
+Input: client name / URL (simulating a CRM trigger)
+  → Scrape their digital assets
+  → LLM extracts structured Client Card (internal, for the Zap producer)
+  → LLM generates onboarding welcome message (client-facing, auto-sent)
+  → LLM drafts 5-page website (to show client what Zap will build)
+  → LLM drafts Dapei Zahav minisite (to show client their new listing)
+  → Everything logged to simulated CRM
+Output: Client Card, welcome message, draft website, draft minisite, CRM entry
+```
+
+This is the version we're building. Python script, repeatable for any new client.
+
+---
+
+## 16:10 — Building the pipeline
+
+Built 4 files:
+
+**scraper.py** — Takes a URL, auto-discovers all internal pages, scrapes them all, also checks for satellite sites (WordPress, Weebly) automatically. Tested on imazganim.co.il: found 14 sources, 40K chars. No AI needed for this step.
+
+**llm.py** — All Claude API calls in one place. 5 functions:
+- `extract_client_card()` — raw text → structured JSON
+- `generate_client_card_hebrew()` — JSON → readable Hebrew summary
+- `generate_welcome_message()` — JSON → client-facing onboarding message
+- `generate_draft_website()` — JSON → 5 HTML pages
+- `generate_draft_minisite()` — JSON → Dapei Zahav profile HTML
+
+**crm.py** — Simulates CRM logging. Creates a JSON entry with all actions taken, timestamps, and links to deliverables.
+
+**main.py** — The orchestrator. Runs the full pipeline in 6 steps:
+1. Scrape → 2. Extract Client Card → 3. Generate welcome message → 4. Draft website → 5. Draft minisite → 6. CRM log
+
+Can be run with `python main.py` (uses demo client) or `python main.py https://any-url.com` (any client).
+
+API key set up via .env file, verified working.
+
+---
+
+## 16:20 — Embedding frontend design principles into LLM prompts
+
+First pipeline run produced functional but generic-looking HTML. Asked whether we could use Claude Code's `/frontend-design` skill to improve the output. The skill is a Claude Code feature (injected into the system prompt) — it can't be used directly via the API.
+
+**Solution:** Read the skill's actual design principles and embedded them directly into the system prompt for `generate_draft_website()` and `generate_draft_minisite()` in `llm.py`.
+
+Key principles embedded:
+- Typography: Google Fonts (Heebo for Hebrew), no generic fonts
+- Color: Dominant color + sharp accents via CSS variables, not timid palettes
+- Spatial composition: Generous negative space, asymmetric layouts, grid-breaking elements
+- Motion: CSS transitions, staggered reveal animations
+- Backgrounds: Atmosphere and depth, not flat white
+- Details: Custom buttons, layered shadows, intentional border-radius
+
+Also enhanced the page-specific prompts — each page now has detailed instructions about layout, visual hierarchy, and what information to emphasize.
+
+Increased max_tokens from 4096 to 8192 for website generation to give the model room for richer HTML.
+
+Regenerating all HTML files to compare quality.

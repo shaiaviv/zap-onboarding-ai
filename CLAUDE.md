@@ -60,29 +60,28 @@ These are the confirmed assets belonging to our demo client. Every asset was man
 
 ## Pipeline
 
-The full automation flow:
+The automation simulates a CRM trigger ("new client purchased a package") and runs a full pipeline:
 
-1. **Scrape** — collect raw text from the client's verified digital assets
-2. **Client Card** (internal) — feed scraped text to Claude → structured JSON + readable Hebrew summary for the Zap producer
-3. **Draft Website** — feed Client Card to Claude → 5-page HTML website draft
-4. **Draft Dapei Zahav Minisite** — feed Client Card to Claude → structured profile matching d.co.il format
-5. **Onboarding Script** (internal) — feed Client Card to Claude → talking points + call script for the account manager
-6. **Client Welcome Message** (client-facing) — auto-generated personalized message sent to the client with links to draft website + Dapei Zahav preview
-7. **CRM Log** — save everything (client card, drafts, script, send confirmation) to a simulated CRM
+```
+Input: client name / URL (simulating a CRM trigger)
+  → Scrape their digital assets
+  → LLM extracts structured Client Card (internal, for the Zap producer)
+  → LLM generates onboarding welcome message (client-facing, auto-sent)
+  → LLM drafts 5-page website (to show client what Zap will build)
+  → LLM drafts Dapei Zahav minisite (to show client their new listing)
+  → Everything logged to simulated CRM
+Output: Client Card, welcome message, draft website, draft minisite, CRM entry
+```
 
 ### Who sees what
 
-**Account manager (internal):**
-- Client Card — all extracted data, digital presence map, observations, notes (e.g., "Google Maps rating 3.4", "no existing Dapei Zahav presence")
-- Onboarding call script — talking points, what to highlight, what to ask
+**Zap producer (internal):**
+- Client Card — all extracted data, digital presence map, observations, notes
 
-**Client (auto-sent before the call):**
-- Personalized welcome message
-- Link to draft website preview — "here's what we're building for you"
-- Link to draft Dapei Zahav minisite preview — "here's your new listing"
-- What to expect on the onboarding call
-
-The client sees the drafts and thinks "they already started working on my stuff." The account manager walks into the call fully prepared. Both sides are ready.
+**Client (auto-sent):**
+- Personalized onboarding welcome message with links to:
+  - Draft website preview — "here's what we're building for you"
+  - Draft Dapei Zahav minisite preview — "here's your new listing"
 
 ## Project Structure (target)
 
@@ -90,27 +89,30 @@ The client sees the drafts and thinks "they already started working on my stuff.
 zap-onboarding-ai/
 ├── CLAUDE.md              # This file
 ├── journal.md             # Decision log
+├── clientinfo.md          # Raw scraped data from demo client
 ├── requirements.txt       # Python dependencies
-├── main.py                # Main pipeline script
-├── scraper.py             # Scrapes digital assets
-├── client_card.py         # Generates structured Client Card via LLM
-├── onboarding_script.py   # Generates personalized call script via LLM
-├── website_generator.py   # Generates draft 5-page website via LLM
-├── crm_logger.py          # Simulates CRM logging
+├── .env                   # API key (gitignored)
+├── main.py                # Main pipeline — runs the full flow
+├── scraper.py             # Scrapes digital assets given a URL/name
+├── llm.py                 # Claude API calls (extraction + generation)
+├── crm.py                 # Simulates CRM logging
 ├── output/                # Generated output files
-│   ├── client_card.json
-│   ├── client_card.md
-│   ├── onboarding_script.md
-│   └── website/           # Draft website
-│       ├── index.html
-│       ├── services.html
-│       ├── about.html
-│       ├── areas.html
-│       └── contact.html
+│   ├── client_card.json   # Structured client data
+│   ├── client_card.md     # Readable Hebrew summary for the producer
+│   ├── welcome_message.md # Client-facing onboarding message
+│   ├── crm_log.json       # Simulated CRM entry
+│   ├── website/           # Draft 5-page website
+│   │   ├── index.html
+│   │   ├── services.html
+│   │   ├── about.html
+│   │   ├── areas.html
+│   │   └── contact.html
+│   └── minisite/          # Draft Dapei Zahav minisite
+│       └── minisite.html
 └── README.md              # Required for submission
 ```
 
-This structure is a guideline — consolidate into fewer files if it makes more sense during implementation.
+Consolidate into fewer files if it makes more sense during implementation.
 
 ## Submission
 
