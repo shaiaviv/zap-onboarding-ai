@@ -4,3 +4,4 @@ __pycache__/
 .env
 output/
 .playwright-mcp/
+docs/code-explainer.html

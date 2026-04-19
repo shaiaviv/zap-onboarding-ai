@@ -103,7 +103,7 @@ The message should:
 3. Mention that we've prepared a draft website and Dapei Zahav minisite for them to review
 4. Include placeholder links: [LINK_DRAFT_WEBSITE] and [LINK_DRAFT_MINISITE]
 5. Explain what to expect in the onboarding process
-6. Ask them to confirm key details (hours, phone, any services we might have missed)
+6. Ask them to confirm key details — phrase it as questions TO the client: "האם המספר שלך הוא X?" not "פרטי הטלפון: X". Their phone number is their number, not ours — never present it as if it belongs to Zap
 7. Sign off from "צוות זאפ דפי זהב"
 
 Keep it concise — no more than 15 lines. Warm but professional.
