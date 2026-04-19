@@ -72,30 +72,30 @@ def run_pipeline(scraped_results, base_url=None):
     client_card_md = generate_client_card_hebrew(client_card_json)
     save_file("client_card.md", client_card_md)
 
-    # Step 3: Onboarding welcome message
+    # Step 3: Draft 5-page website
     print(f"\n{'─' * 60}")
-    print("STEP 3: Generating onboarding welcome message (AI)")
-    print(f"{'─' * 60}")
-    print("  Generating personalized welcome message...")
-    welcome_msg = generate_welcome_message(client_card_json)
-    save_file("welcome_message.md", welcome_msg)
-
-    # Step 4: Draft 5-page website
-    print(f"\n{'─' * 60}")
-    print("STEP 4: Generating draft website (AI)")
+    print("STEP 3: Generating draft website (AI)")
     print(f"{'─' * 60}")
     print("  Generating 5-page website draft...")
     website_pages = generate_draft_website(client_card_json, images)
     for filename, html in website_pages.items():
         save_file(f"website/{filename}", html)
 
-    # Step 5: Draft Dapei Zahav minisite
+    # Step 4: Draft Dapei Zahav minisite
     print(f"\n{'─' * 60}")
-    print("STEP 5: Generating draft Dapei Zahav minisite (AI)")
+    print("STEP 4: Generating draft Dapei Zahav minisite (AI)")
     print(f"{'─' * 60}")
     print("  Generating minisite draft...")
     minisite_html = generate_draft_minisite(client_card_json, images)
     save_file("minisite/index.html", minisite_html)
+
+    # Step 5: Onboarding welcome message — sent AFTER drafts exist so links are real
+    print(f"\n{'─' * 60}")
+    print("STEP 5: Generating onboarding welcome message (AI)")
+    print(f"{'─' * 60}")
+    print("  Generating personalized welcome message...")
+    welcome_msg = generate_welcome_message(client_card_json)
+    save_file("welcome_message.md", welcome_msg)
 
     # Step 6: CRM log
     print(f"\n{'─' * 60}")
