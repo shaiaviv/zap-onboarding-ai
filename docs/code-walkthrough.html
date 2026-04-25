@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Walkthrough — Zap Onboarding AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --green: #3fb950;
+    --green-dim: #1a3a20;
+    --blue: #58a6ff;
+    --blue-dim: #0d2a4a;
+    --orange: #d29922;
+    --orange-dim: #3a2a00;
+    --purple: #bc8cff;
+    --purple-dim: #2d1f4a;
+    --red: #f85149;
+    --red-dim: #3a1010;
+    --yellow: #e3b341;
+    --yellow-dim: #3a2e00;
+    --cyan: #39c5cf;
+    --cyan-dim: #0d3038;
+    --teal: #2ea043;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Heebo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  /* ── Top nav ── */
+  .topnav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(13,17,23,0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .topnav-title { font-weight: 700; font-size: 15px; color: var(--blue); }
+  .topnav-links { display: flex; gap: 12px; flex-wrap: wrap; }
+  .topnav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .topnav-links a:hover { color: var(--text); border-color: var(--blue); background: var(--blue-dim); }
+  .back-link {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color .2s;
+  }
+  .back-link:hover { color: var(--blue); }
+
+  /* ── Layout ── */
+  .container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 48px 48px;
+  }
+
+  .hero {
+    text-align: center;
+    margin-bottom: 64px;
+    padding: 48px 24px;
+    background: linear-gradient(135deg, var(--blue-dim) 0%, var(--purple-dim) 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+  }
+  .hero h1 { font-size: 2.2rem; font-weight: 900; margin-bottom: 12px; }
+  .hero p { color: var(--muted); font-size: 1rem; margin: 0 auto; }
+  .hero-badge {
+    display: inline-block;
+    padding: 4px 14px;
+    background: var(--blue-dim);
+    border: 1px solid var(--blue);
+    color: var(--blue);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── Section headers ── */
+  .file-section {
+    margin-bottom: 72px;
+  }
+  .file-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding: 20px 28px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .file-header.main-py { background: linear-gradient(135deg, var(--blue-dim), #0a1a30); border-color: var(--blue); }
+  .file-header.scraper-py { background: linear-gradient(135deg, var(--green-dim), #0a2010); border-color: var(--green); }
+  .file-header.llm-py { background: linear-gradient(135deg, var(--purple-dim), #1a0f30); border-color: var(--purple); }
+  .file-header.crm-py { background: linear-gradient(135deg, var(--orange-dim), #2a1500); border-color: var(--orange); }
+
+  .file-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+  }
+  .file-header-info h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .file-header-info p { color: var(--muted); font-size: 13px; }
+
+  /* ── Code blocks ── */
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .code-block-header {
+    padding: 10px 20px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .code-block-header .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot-red { background: #ff5f57; }
+  .dot-yellow { background: #febc2e; }
+  .dot-green { background: #28c840; }
+
+  .code-content {
+    overflow-x: auto;
+  }
+
+  table.code-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    direction: ltr;
+  }
+  table.code-table tr { transition: background .15s; }
+  table.code-table tr:hover { background: rgba(255,255,255,0.03); }
+  table.code-table tr.highlighted { background: rgba(88,166,255,0.08); }
+
+  td.line-num {
+    width: 44px;
+    min-width: 44px;
+    text-align: right;
+    padding: 3px 14px 3px 10px;
+    color: #484f58;
+    user-select: none;
+    vertical-align: top;
+    border-right: 1px solid var(--border);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  td.line-code {
+    padding: 3px 20px;
+    white-space: pre;
+    color: #e6edf3;
+    line-height: 1.6;
+    vertical-align: top;
+  }
+  td.line-explain {
+    padding: 3px 16px 3px 20px;
+    color: var(--muted);
+    font-family: 'Heebo', sans-serif;
+    font-size: 12.5px;
+    direction: rtl;
+    text-align: right;
+    vertical-align: top;
+    min-width: 220px;
+    max-width: 320px;
+    border-right: 3px solid var(--border);
+    line-height: 1.5;
+  }
+  td.line-explain.important {
+    color: var(--yellow);
+    border-right-color: var(--yellow);
+    background: rgba(227, 179, 65, 0.04);
+  }
+  td.line-explain.key {
+    color: var(--cyan);
+    border-right-color: var(--cyan);
+    background: rgba(57,197,207,0.04);
+  }
+  td.line-explain.warn {
+    color: var(--orange);
+    border-right-color: var(--orange);
+    background: rgba(210,153,34,0.04);
+  }
+  td.line-explain.good {
+    color: var(--green);
+    border-right-color: var(--green);
+    background: rgba(63,185,80,0.04);
+  }
+
+  /* ── File source badges — appear in annotation column on function calls ── */
+  .fb {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 4px;
+    margin-bottom: 3px;
+    letter-spacing: .3px;
+  }
+  .fb-main  { background: rgba(88,166,255,0.15); color: var(--blue);   border: 1px solid var(--blue); }
+  .fb-scraper { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid var(--green); }
+  .fb-llm   { background: rgba(188,140,255,0.15); color: var(--purple); border: 1px solid var(--purple); }
+  .fb-crm   { background: rgba(210,153,34,0.15);  color: var(--orange); border: 1px solid var(--orange); }
+  .fb-ret   { display: block; margin-top: 3px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #484f58; }
+
+  /* syntax colors */
+  .kw { color: #ff7b72; }          /* keywords: def, class, import, if, for, return */
+  .fn { color: #d2a8ff; }          /* function names */
+  .str { color: #a5d6ff; }         /* strings */
+  .num { color: #79c0ff; }         /* numbers */
+  .cm { color: #484f58; font-style: italic; } /* comments */
+  .bi { color: #ffa657; }          /* built-ins / types */
+  .op { color: #ff7b72; }          /* operators */
+  .va { color: #e6edf3; }          /* variables */
+  .kw2 { color: #79c0ff; }         /* secondary keywords: True/False/None/as/from/with */
+  .dec { color: #d2a8ff; }         /* decorators */
+
+  /* ── Explanation boxes ── */
+  .explain-box {
+    margin: 16px 0 28px;
+    padding: 18px 22px;
+    border-radius: 10px;
+    border: 1px solid;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .explain-box.blue { border-color: var(--blue); background: var(--blue-dim); }
+  .explain-box.green { border-color: var(--green); background: var(--green-dim); }
+  .explain-box.purple { border-color: var(--purple); background: var(--purple-dim); }
+  .explain-box.orange { border-color: var(--orange); background: var(--orange-dim); }
+  .explain-box.yellow { border-color: var(--yellow); background: var(--yellow-dim); }
+  .explain-box.cyan { border-color: var(--cyan); background: var(--cyan-dim); }
+  .explain-box h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .explain-box.blue h4 { color: var(--blue); }
+  .explain-box.green h4 { color: var(--green); }
+  .explain-box.purple h4 { color: var(--purple); }
+  .explain-box.orange h4 { color: var(--orange); }
+  .explain-box.yellow h4 { color: var(--yellow); }
+  .explain-box.cyan h4 { color: var(--cyan); }
+  .explain-box ul { padding-right: 20px; }
+  .explain-box li { margin-bottom: 6px; }
+
+  /* ── Function summary box — plain English "what does this function do" ── */
+  .func-summary {
+    margin: 0 0 16px;
+    padding: 14px 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--muted);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.7;
+  }
+  .func-summary .fs-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .func-summary strong { color: var(--cyan); }
+
+  .func-divider {
+    margin: 36px 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .func-divider .func-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--purple);
+    background: var(--purple-dim);
+    border: 1px solid var(--purple);
+    padding: 4px 14px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .func-divider .func-name.green { color: var(--green); background: var(--green-dim); border-color: var(--green); }
+  .func-divider .func-name.blue { color: var(--blue); background: var(--blue-dim); border-color: var(--blue); }
+  .func-divider .func-name.orange { color: var(--orange); background: var(--orange-dim); border-color: var(--orange); }
+  .func-divider hr { flex: 1; border: none; border-top: 1px solid var(--border); }
+
+  /* ── TOC ── */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin-bottom: 56px;
+  }
+  .toc h3 { font-size: 14px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+  .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .toc-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text);
+    transition: all .2s;
+    font-size: 13px;
+  }
+  .toc-item:hover { border-color: var(--blue); background: var(--blue-dim); color: var(--blue); }
+  .toc-item .toc-file { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px; }
+  .toc-item .toc-fn { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .toc-item.step-main { border-color: rgba(88,166,255,0.3); }
+  .toc-item.step-scraper { border-color: rgba(63,185,80,0.3); }
+  .toc-item.step-llm { border-color: rgba(188,140,255,0.3); }
+  .toc-item.step-crm { border-color: rgba(210,153,34,0.3); }
+
+  /* ── Flow arrow ── */
+  .flow-arrow {
+    text-align: center;
+    padding: 16px 0;
+    font-size: 24px;
+    color: var(--border);
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-right: 6px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .tag.ai { background: var(--purple-dim); color: var(--purple); border: 1px solid var(--purple); }
+  .tag.io { background: var(--blue-dim); color: var(--blue); border: 1px solid var(--blue); }
+  .tag.logic { background: var(--cyan-dim); color: var(--cyan); border: 1px solid var(--cyan); }
+  .tag.config { background: var(--orange-dim); color: var(--orange); border: 1px solid var(--orange); }
+  .tag.guard { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+</style>
+</head>
+<body>
+
+<!-- Top Nav -->
+<nav class="topnav">
+  <a href="code-explainer.html" class="back-link">← חזרה ל-Code Explainer</a>
+  <span class="topnav-title">Code Walkthrough — שורה אחר שורה</span>
+  <div class="topnav-links">
+    <a href="#main-py">main.py</a>
+    <a href="#scraper-py">scraper.py</a>
+    <a href="#llm-py">llm.py</a>
+    <a href="#crm-py">crm.py</a>
+    <a href="llm-deep-dive.html">llm.py Deep Dive →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">Interview Prep</div>
+    <h1>קוד שורה אחר שורה</h1>
+    <p>כל קובץ, כל פונקציה, כל שורה — מוסברת בעברית פשוטה בסדר הזרימה האמיתי של ה-pipeline.</p>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <h3>ניווט מהיר</h3>
+    <div class="toc-grid">
+      <a href="#main-entry" class="toc-item step-main">
+        <span>🚀</span>
+        <div><div class="toc-file">main.py</div><div class="toc-fn">Entry point + argparse</div></div>
+      </a>
+      <a href="#main-pipeline" class="toc-item step-main">
+        <span>⚙️</span>
+        <div><div class="toc-file">main.py</div><div class="toc-fn">run_pipeline()</div></div>
+      </a>
+      <a href="#scrape-url" class="toc-item step-scraper">
+        <span>🌐</span>
+        <div><div class="toc-file">scraper.py</div><div class="toc-fn">scrape_url()</div></div>
+      </a>
+      <a href="#collect-images" class="toc-item step-scraper">
+        <span>🖼️</span>
+        <div><div class="toc-file">scraper.py</div><div class="toc-fn">collect_images()</div></div>
+      </a>
+      <a href="#discover-pages" class="toc-item step-scraper">
+        <span>🔗</span>
+        <div><div class="toc-file">scraper.py</div><div class="toc-fn">discover_internal_pages()</div></div>
+      </a>
+      <a href="#phone-variants" class="toc-item step-scraper">
+        <span>📞</span>
+        <div><div class="toc-file">scraper.py</div><div class="toc-fn">_phone_variants()</div></div>
+      </a>
+      <a href="#discover-assets" class="toc-item step-scraper">
+        <span>🔍</span>
+        <div><div class="toc-file">scraper.py</div><div class="toc-fn">discover_assets()</div></div>
+      </a>
+      <a href="#scrape-client" class="toc-item step-scraper">
+        <span>🕷️</span>
+        <div><div class="toc-file">scraper.py</div><div class="toc-fn">scrape_client()</div></div>
+      </a>
+      <a href="#call-claude" class="toc-item step-llm">
+        <span>🤖</span>
+        <div><div class="toc-file">llm.py</div><div class="toc-fn">call_claude()</div></div>
+      </a>
+      <a href="#extract-card" class="toc-item step-llm">
+        <span>📋</span>
+        <div><div class="toc-file">llm.py</div><div class="toc-fn">extract_client_card()</div></div>
+      </a>
+      <a href="#design-prompt" class="toc-item step-llm">
+        <span>🎨</span>
+        <div><div class="toc-file">llm.py</div><div class="toc-fn">DESIGN_SYSTEM_PROMPT</div></div>
+      </a>
+      <a href="#generate-website" class="toc-item step-llm">
+        <span>🏗️</span>
+        <div><div class="toc-file">llm.py</div><div class="toc-fn">generate_draft_website()</div></div>
+      </a>
+      <a href="#generate-minisite" class="toc-item step-llm">
+        <span>🟡</span>
+        <div><div class="toc-file">llm.py</div><div class="toc-fn">generate_draft_minisite()</div></div>
+      </a>
+      <a href="#crm-log" class="toc-item step-crm">
+        <span>💾</span>
+        <div><div class="toc-file">crm.py</div><div class="toc-fn">log_to_crm()</div></div>
+      </a>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- MAIN.PY -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="file-section" id="main-py">
+    <div class="file-header main-py">
+      <div class="file-icon">🚀</div>
+      <div class="file-header-info">
+        <h2>main.py</h2>
+        <p>נקודת הכניסה לכל הפרויקט. מנהל את argparse (מקבל פרמטרים מה-CLI), ומנהל את כל ה-pipeline מההתחלה עד הסוף.</p>
+      </div>
+    </div>
+
+    <div id="main-entry">
+      <div class="func-divider">
+        <div class="func-name blue">Imports &amp; Constants</div>
+        <hr>
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>main.py — lines 1-33</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">1</td><td class="line-code"><span class="cm">"""</span></td><td class="line-explain key">Docstring — הסבר על הקובץ. Python מתעלם ממנו בזמן ריצה.</td></tr>
+            <tr><td class="line-num">2-16</td><td class="line-code"><span class="cm">Zap Onboarding AI — Main Pipeline...</span></td><td class="line-explain">כולל דוגמאות שימוש מה-CLI.</td></tr>
+            <tr><td class="line-num">18</td><td class="line-code"><span class="kw">import</span> <span class="va">os</span></td><td class="line-explain">גישה למשתני סביבה (API key) ולמסלולי קבצים.</td></tr>
+            <tr><td class="line-num">19</td><td class="line-code"><span class="kw">import</span> <span class="va">sys</span></td><td class="line-explain"><code>sys.exit(1)</code> — יוצא עם שגיאה אם חסרים פרמטרים.</td></tr>
+            <tr><td class="line-num">20</td><td class="line-code"><span class="kw">import</span> <span class="va">json</span></td><td class="line-explain">נדרש לפרסר JSON מה-LLM (לא בשימוש ישיר כאן — יש בcrm.py).</td></tr>
+            <tr><td class="line-num">21</td><td class="line-code"><span class="kw">import</span> <span class="va">argparse</span></td><td class="line-explain">ספרייה סטנדרטית של Python לפרסר פרמטרים מה-CLI (--url, --name וכו').</td></tr>
+            <tr class="highlighted"><td class="line-num">23</td><td class="line-code"><span class="kw">from</span> <span class="va">scraper</span> <span class="kw">import</span> <span class="fn">scrape_client, scrape_multiple, discover_assets, format_scraped_data, collect_images</span></td><td class="line-explain important"><span class="fb fb-scraper">scraper.py</span> מייבא 5 פונקציות סריקה: scrape_client=URL ישיר, scrape_multiple=מרשימה, discover_assets=DuckDuckGo, format_scraped_data=מיזוג, collect_images=תמונות.</td></tr>
+            <tr class="highlighted"><td class="line-num">24-30</td><td class="line-code"><span class="kw">from</span> <span class="va">llm</span> <span class="kw">import</span> <span class="fn">extract_client_card, generate_client_card_hebrew, generate_welcome_message, generate_draft_website, generate_draft_minisite</span></td><td class="line-explain important"><span class="fb fb-llm">llm.py</span> מייבא 5 פונקציות Claude: extract=JSON, hebrew=כרטיס, welcome=ברוכים הבאים, website=5 עמודים, minisite=דפי זהב.</td></tr>
+            <tr><td class="line-num">31</td><td class="line-code"><span class="kw">from</span> <span class="va">crm</span> <span class="kw">import</span> <span class="fn">log_to_crm</span></td><td class="line-explain"><span class="fb fb-crm">crm.py</span> פונקציה אחת — כותבת crm_log.json בסוף ה-pipeline.</td></tr>
+            <tr><td class="line-num">33</td><td class="line-code"><span class="va">OUTPUT_DIR</span> <span class="op">=</span> <span class="bi">os</span>.<span class="fn">path</span>.<span class="fn">join</span>(<span class="bi">os</span>.<span class="fn">path</span>.<span class="fn">dirname</span>(<span class="va">__file__</span>), <span class="str">"output"</span>)</td><td class="line-explain key">מוצא את התיקייה output/ <em>ביחס</em> למיקום main.py — לא ביחס לתיקייה שממנה הרצנו.</td></tr>
+            <tr><td class="line-num">34</td><td class="line-code"><span class="va">DEMO_URL</span> <span class="op">=</span> <span class="str">"https://www.imazganim.co.il/"</span></td><td class="line-explain">URL ברירת מחדל אם לא נמסר שום פרמטר — לבדיקות מהירות.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box blue">
+        <h4>למה <code>os.path.dirname(__file__)</code>?</h4>
+        Python רץ מתיקיות שונות. אם נכתוב <code>"output"</code> סתם, הוא יחפש אותה ביחס ל-<em>working directory</em> (מאיפה הרצנו את הפקודה), לא ביחס לקובץ. <code>__file__</code> הוא מיקום הקובץ הנוכחי, ו-<code>dirname</code> מחזיר את התיקייה שלו — כך תמיד נוצר <code>output/</code> לצד <code>main.py</code>.
+      </div>
+
+      <div class="func-divider">
+        <div class="func-name blue">ensure_output_dirs() + save_file()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What these functions do</div>
+        <strong>ensure_output_dirs()</strong> — creates the <code>output/website/</code> and <code>output/minisite/</code> folders before anything tries to write files into them. Runs once at the start.<br><br>
+        <strong>save_file(path, content)</strong> — takes a relative path like <code>"website/index.html"</code> and a string of content, and writes it to disk inside the output folder. Every file in the project is saved through this one helper.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>main.py — lines 37-46</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">37</td><td class="line-code"><span class="kw">def</span> <span class="fn">ensure_output_dirs</span>():</td><td class="line-explain">פונקציה עזר — יוצרת תיקיות לפני שמנסים לכתוב קבצים.</td></tr>
+            <tr><td class="line-num">38</td><td class="line-code">    <span class="bi">os</span>.<span class="fn">makedirs</span>(<span class="bi">os</span>.<span class="fn">path</span>.<span class="fn">join</span>(<span class="va">OUTPUT_DIR</span>, <span class="str">"website"</span>), exist_ok=<span class="kw2">True</span>)</td><td class="line-explain key"><code>exist_ok=True</code> = לא נכשל אם התיקייה כבר קיימת. ה-<code>os.path.join</code> בונה מסלול נכון לכל OS.</td></tr>
+            <tr><td class="line-num">39</td><td class="line-code">    <span class="bi">os</span>.<span class="fn">makedirs</span>(<span class="bi">os</span>.<span class="fn">path</span>.<span class="fn">join</span>(<span class="va">OUTPUT_DIR</span>, <span class="str">"minisite"</span>), exist_ok=<span class="kw2">True</span>)</td><td class="line-explain">כנ"ל לתיקיית minisite.</td></tr>
+            <tr><td class="line-num">42</td><td class="line-code"><span class="kw">def</span> <span class="fn">save_file</span>(path, content):</td><td class="line-explain">מקבל path יחסי (כמו "website/index.html") ותוכן.</td></tr>
+            <tr><td class="line-num">43</td><td class="line-code">    <span class="va">full_path</span> <span class="op">=</span> <span class="bi">os</span>.<span class="fn">path</span>.<span class="fn">join</span>(<span class="va">OUTPUT_DIR</span>, path)</td><td class="line-explain">מחבר לנתיב מלא: output/website/index.html</td></tr>
+            <tr><td class="line-num">44</td><td class="line-code">    <span class="kw">with</span> <span class="bi">open</span>(full_path, <span class="str">"w"</span>, encoding=<span class="str">"utf-8"</span>) <span class="kw">as</span> <span class="va">f</span>:</td><td class="line-explain key"><code>with open</code> = context manager. מבטיח שהקובץ ייסגר גם אם יש שגיאה. <code>"w"</code> = כתיבה (דורסת תוכן ישן).</td></tr>
+            <tr><td class="line-num">45</td><td class="line-code">        <span class="va">f</span>.<span class="fn">write</span>(content)</td><td class="line-explain">כותב את התוכן. כאן נשמרים HTML, JSON, Markdown.</td></tr>
+            <tr><td class="line-num">46</td><td class="line-code">    <span class="bi">print</span>(<span class="str">f"  Saved: output/{path}"</span>)</td><td class="line-explain">f-string עם הפרמטר בתוכו — הדפסה ל-terminal.</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="main-pipeline">
+      <div class="func-divider">
+        <div class="func-name blue">run_pipeline()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        Takes the scraped text from the client's websites and runs the entire AI pipeline on it — in order: extract structured data → generate Hebrew client card → generate 5-page draft website → generate Dapei Zahav minisite → generate welcome message → log to CRM. This is where all the Claude API calls happen. Everything before it is just gathering data; everything after it is just saving files.
+      </div>
+
+      <div class="explain-box cyan">
+        <h4>זו הלב של כל הפרויקט</h4>
+        <p>מקבל נתונים שכבר נסרקו ומריץ את כל שלבי ה-AI. ה-pipeline מחולק ל-5 שלבים ברורים.</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>main.py — lines 49-116 (run_pipeline)</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">49</td><td class="line-code"><span class="kw">def</span> <span class="fn">run_pipeline</span>(scraped_results, base_url=<span class="kw2">None</span>):</td><td class="line-explain key">לב הפרויקט. מקבל 2 פרמטרים: scraped_results = dict {url→text} שנאסף מהסריקה. base_url = ה-URL הראשי (אופציונלי, לאיסוף תמונות).</td></tr>
+            <tr><td class="line-num">55</td><td class="line-code">    <span class="va">raw_text</span> <span class="op">=</span> <span class="fn">format_scraped_data</span>(scraped_results)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → format_scraped_data()</span> ממיר את ה-dict ל-string אחד גדול עם separators. Claude יקרא את הכל כ-context אחד. <span class="fb-ret">→ מחזיר: string</span></td></tr>
+            <tr><td class="line-num">58</td><td class="line-code">    <span class="va">images</span> <span class="op">=</span> []</td><td class="line-explain">מאתחל images כ-list ריקה. אם לא נמצאות תמונות, ה-LLM ייצר גלריה ריקה.</td></tr>
+            <tr><td class="line-num">59</td><td class="line-code">    <span class="kw">if</span> <span class="va">base_url</span>:</td><td class="line-explain">בודק אם יש base_url. בmodus discovery — יש base_url (URL ראשון שנמצא). בlabs ללא URL — אין, ולכן דולגים על התמונות.</td></tr>
+            <tr><td class="line-num">61</td><td class="line-code">        <span class="va">images</span> <span class="op">=</span> <span class="fn">collect_images</span>(base_url)</td><td class="line-explain good"><span class="fb fb-scraper">scraper.py → collect_images()</span> סורק את ה-domain, מוצא URLs של תמונות אמיתיות (jpg/png/webp). מקסימום 8. <span class="fb-ret">→ מחזיר: list of {url:..., alt:...}</span></td></tr>
+            <tr><td class="line-num">68</td><td class="line-code">    <span class="va">client_card_json</span> <span class="op">=</span> <span class="fn">extract_client_card</span>(raw_text)</td><td class="line-explain important"><span class="fb fb-llm">llm.py → extract_client_card()</span> קריאה ראשונה ל-Claude. שולח את כל הטקסט הגולמי, מבקש JSON מובנה עם כל שדות הלקוח (שם, טלפון, שירותים...). <span class="fb-ret">→ מחזיר: JSON string</span></td></tr>
+            <tr><td class="line-num">69</td><td class="line-code">    <span class="fn">save_file</span>(<span class="str">"client_card.json"</span>, client_card_json)</td><td class="line-explain"><span class="fb fb-main">main.py → save_file()</span> כותב את ה-JSON לקובץ output/client_card.json. פונקציה עזר מקומית — פותחת קובץ ב-"w" mode וכותבת. <span class="fb-ret">→ מחזיר: None (side effect: קובץ)</span></td></tr>
+            <tr><td class="line-num">72</td><td class="line-code">    <span class="va">client_card_md</span> <span class="op">=</span> <span class="fn">generate_client_card_hebrew</span>(client_card_json)</td><td class="line-explain"><span class="fb fb-llm">llm.py → generate_client_card_hebrew()</span> קריאה שנייה ל-Claude. מקבל את ה-JSON ומייצר כרטיס לקוח מעוצב בעברית — פסקאות, bullet points, headers — למפיק בזאפ. <span class="fb-ret">→ מחזיר: Markdown string</span></td></tr>
+            <tr><td class="line-num">73</td><td class="line-code">    <span class="fn">save_file</span>(<span class="str">"client_card.md"</span>, client_card_md)</td><td class="line-explain"><span class="fb fb-main">main.py → save_file()</span> שומר ל-output/client_card.md. אותה פונקציה עזר, path שונה.</td></tr>
+            <tr><td class="line-num">80</td><td class="line-code">    <span class="va">website_pages</span> <span class="op">=</span> <span class="fn">generate_draft_website</span>(client_card_json, images)</td><td class="line-explain key"><span class="fb fb-llm">llm.py → generate_draft_website()</span> מריץ 5 קריאות Claude נפרדות — עמוד אחד בכל פעם. מחזיר dict עם 5 מפתחות. <span class="fb-ret">→ מחזיר: {"index.html": html, "services.html": html, ...}</span></td></tr>
+            <tr><td class="line-num">81</td><td class="line-code">    <span class="kw">for</span> <span class="va">filename</span>, <span class="va">html</span> <span class="kw">in</span> <span class="va">website_pages</span>.<span class="fn">items</span>():</td><td class="line-explain">לולאה על 5 הפריטים ב-dict. בכל איטרציה: filename = "index.html" ו-html = תוכן ה-HTML. .items() מחזיר key-value pairs.</td></tr>
+            <tr><td class="line-num">82</td><td class="line-code">        <span class="fn">save_file</span>(<span class="str">f"website/{filename}"</span>, html)</td><td class="line-explain"><span class="fb fb-main">main.py → save_file()</span> שומר כל עמוד ל-output/website/index.html, output/website/services.html וכו'. f-string בונה את ה-path בדינמיות.</td></tr>
+            <tr><td class="line-num">89</td><td class="line-code">    <span class="va">minisite_html</span> <span class="op">=</span> <span class="fn">generate_draft_minisite</span>(client_card_json, images)</td><td class="line-explain"><span class="fb fb-llm">llm.py → generate_draft_minisite()</span> קריאה אחת ל-Claude עם system prompt ייחודי לדפי זהב — צהוב/זהב, מבנה directory listing. <span class="fb-ret">→ מחזיר: HTML string (עמוד אחד)</span></td></tr>
+            <tr><td class="line-num">90</td><td class="line-code">    <span class="fn">save_file</span>(<span class="str">"minisite/index.html"</span>, minisite_html)</td><td class="line-explain"><span class="fb fb-main">main.py → save_file()</span> שומר ל-output/minisite/index.html.</td></tr>
+            <tr class="highlighted"><td class="line-num">97</td><td class="line-code">    <span class="va">welcome_msg</span> <span class="op">=</span> <span class="fn">generate_welcome_message</span>(client_card_json)</td><td class="line-explain warn"><span class="fb fb-llm">llm.py → generate_welcome_message()</span> ⚠️ נוצרת בכוונה אחרי ה-website והminisite — ההודעה מכילה links לטיוטות. לכן חייבת לבוא אחריהן. <span class="fb-ret">→ מחזיר: Hebrew text string</span></td></tr>
+            <tr><td class="line-num">98</td><td class="line-code">    <span class="fn">save_file</span>(<span class="str">"welcome_message.md"</span>, welcome_msg)</td><td class="line-explain"><span class="fb fb-main">main.py → save_file()</span> שומר ל-output/welcome_message.md.</td></tr>
+            <tr><td class="line-num">104</td><td class="line-code">    <span class="fn">log_to_crm</span>(client_card_json, welcome_msg, <span class="va">OUTPUT_DIR</span>)</td><td class="line-explain"><span class="fb fb-crm">crm.py → log_to_crm()</span> שלב אחרון. מקבל JSON + הודעה + נתיב תיקייה. כותב crm_log.json עם timestamp, status, ו-audit trail. <span class="fb-ret">→ מחזיר: None (כותב קובץ)</span></td></tr>
+            <tr><td class="line-num">112</td><td class="line-code">    <span class="kw">for</span> <span class="va">root</span>, <span class="va">dirs</span>, <span class="va">files</span> <span class="kw">in</span> <span class="bi">os</span>.<span class="fn">walk</span>(<span class="va">OUTPUT_DIR</span>):</td><td class="line-explain key">os.walk() מרצה רקורסיבית על כל התיקיות ב-output/. בכל צעד מחזיר: root=תיקייה הנוכחית, dirs=תתי-תיקיות, files=קבצים. לשימוש רק ל-print הסיום.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="func-divider">
+        <div class="func-name blue">main() — argparse</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        The entry point — the first thing that runs when you type <code>python main.py</code>. It reads whatever arguments you passed on the command line (<code>--url</code>, <code>--name</code>, <code>--phone</code>, etc.) and decides which mode to use: <strong>discovery mode</strong> (search DuckDuckGo for the client's assets) or <strong>direct URL mode</strong> (scrape a known URL immediately). Either way, it ends by calling <code>run_pipeline()</code> with the scraped results.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>main.py — lines 119-171 (main function)</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">119</td><td class="line-code"><span class="kw">def</span> <span class="fn">main</span>():</td><td class="line-explain">הפונקציה שרצה כשמפעילים <code>python main.py</code>. עם הסיום היא קוראת ל-run_pipeline.</td></tr>
+            <tr><td class="line-num">120</td><td class="line-code">    <span class="va">parser</span> <span class="op">=</span> <span class="va">argparse</span>.<span class="fn">ArgumentParser</span>(...)</td><td class="line-explain key">יוצר parser של argparse. אוטומטית מייצר הודעת --help ומטפל בשגיאות פרמטרים.</td></tr>
+            <tr><td class="line-num">121</td><td class="line-code">    <span class="va">group</span> <span class="op">=</span> <span class="va">parser</span>.<span class="fn">add_mutually_exclusive_group</span>()</td><td class="line-explain important">מגדיר קבוצה בלעדית — argparse יזרוק שגיאה אם מנסים להגדיר --url ו--name ביחד. רק אחד מהם מותר.</td></tr>
+            <tr><td class="line-num">122</td><td class="line-code">    <span class="va">group</span>.<span class="fn">add_argument</span>(<span class="str">"--url"</span>, help=<span class="str">"Direct URL to scrape"</span>)</td><td class="line-explain">מצב URL ישיר — יודעים בדיוק איזה URL לסרוק, דולגים על discovery. דוגמה: <code>--url https://imazganim.co.il</code></td></tr>
+            <tr><td class="line-num">123</td><td class="line-code">    <span class="va">group</span>.<span class="fn">add_argument</span>(<span class="str">"--name"</span>, help=<span class="str">"Business name (for discovery)"</span>)</td><td class="line-explain">מצב discovery — יש שם עסק, נחפש ב-DuckDuckGo. דוגמה: <code>--name "יגאל מזגנים"</code></td></tr>
+            <tr><td class="line-num">124</td><td class="line-code">    <span class="va">parser</span>.<span class="fn">add_argument</span>(<span class="str">"--phone"</span>, ...)</td><td class="line-explain">לא חלק מה-group — תמיד אופציונלי לparse. אבל הקוד בודק ידנית שהוא קיים כשיש --name.</td></tr>
+            <tr><td class="line-num">125</td><td class="line-code">    <span class="va">parser</span>.<span class="fn">add_argument</span>(<span class="str">"--location"</span>, ...)</td><td class="line-explain">כנ"ל לlocation — נדרש לdiscovery כדי להגביל את החיפוש לאזור גיאוגרפי.</td></tr>
+            <tr><td class="line-num">128</td><td class="line-code">    <span class="va">parser</span>.<span class="fn">add_argument</span>(<span class="str">"positional_url"</span>, nargs=<span class="str">"?"</span>)</td><td class="line-explain">תמיכה ב-<code>python main.py https://...</code> ישירות (ללא --url). nargs="?" = אופציונלי לחלוטין. אם לא ניתן שום ארגומנט — DEMO_URL.</td></tr>
+            <tr><td class="line-num">130</td><td class="line-code">    <span class="va">args</span> <span class="op">=</span> <span class="va">parser</span>.<span class="fn">parse_args</span>()</td><td class="line-explain key">Here argparse reads sys.argv (whatever you typed after "python main.py"), parses it, and populates args.url, args.name, args.phone, args.location.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box blue">
+        <h4>argparse, parser, group — from scratch</h4>
+
+        <p>When you run the program you type something like this in the terminal:</p>
+        <pre style="background:var(--bg); padding:12px 16px; border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:13px; margin:12px 0;">python main.py --name "יגאל מזגנים" --phone "072-3977065" --location "קריות"</pre>
+        <p><strong>argparse</strong> is the tool that reads what you typed and makes sense of it. Without it, Python has no idea what <code>--name</code> or <code>--phone</code> mean.</p>
+
+        <br>
+        <p>The three lines that set it up:</p>
+        <ul>
+          <li><code>parser = argparse.ArgumentParser()</code> — creates the reader. Like opening a blank form.</li>
+          <li><code>parser.add_argument("--phone")</code> — adds a field to the form. Now the program knows <code>--phone</code> is a valid thing to pass.</li>
+          <li><code>args = parser.parse_args()</code> — reads what you actually typed and fills in the form. After this line: <code>args.phone = "072-3977065"</code>, <code>args.name = "יגאל מזגנים"</code>, etc.</li>
+        </ul>
+
+        <br>
+        <p><strong>Now — what is group?</strong></p>
+        <p>The program has two completely different modes:</p>
+        <ul>
+          <li><strong>Discovery mode</strong>: you give it a name → it searches DuckDuckGo → finds the URLs itself</li>
+          <li><strong>Direct mode</strong>: you give it a URL → skips the search → goes straight to scraping</li>
+        </ul>
+        <p>These two modes make no sense together. If you pass both <code>--url</code> and <code>--name</code>, what should the program do? That's why they're put in a <code>group</code> — argparse will automatically throw an error if you try to pass both. It's just a safety rule. <code>--phone</code> and <code>--location</code> are NOT in the group because they don't conflict with anything.</p>
+
+        <pre style="background:var(--bg); padding:12px 16px; border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:13px; margin:12px 0; line-height:1.9;">parser  (the whole form)
+├── group  (pick ONE only — these conflict)
+│   ├── --url
+│   └── --name
+├── --phone     (no restriction — always optional)
+└── --location  (no restriction — always optional)</pre>
+
+        <br>
+        <p><strong>How does it actually decide which mode to run?</strong></p>
+        <p>The group doesn't decide — it just stops you from passing both at once. The real decision is one plain <code>if</code> after parsing:</p>
+        <pre style="background:var(--bg); padding:12px 16px; border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:13px; margin:12px 0; line-height:2.1;">if args.name:        <span style="color:#484f58"># did the user type --name?</span>
+    discover_assets(...)   <span style="color:#484f58"># yes → search for URLs</span>
+else:
+    scrape_client(...)     <span style="color:#484f58"># no → use --url or demo</span></pre>
+        <ul>
+          <li>Typed <code>--name "יגאל"</code> → <code>args.name = "יגאל"</code> → truthy → discovery mode</li>
+          <li>Typed <code>--url https://...</code> → <code>args.name = None</code> → falsy → direct mode</li>
+          <li>Typed nothing → <code>args.name = None</code>, <code>args.url = None</code> → direct mode → falls back to <code>DEMO_URL</code></li>
+        </ul>
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>main.py — lines 136-171 (mode branching)</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">136</td><td class="line-code">    <span class="fn">ensure_output_dirs</span>()</td><td class="line-explain"><span class="fb fb-main">main.py → ensure_output_dirs()</span> יוצרת output/website/ ו-output/minisite/ אם לא קיימות. exist_ok=True = לא נכשל אם כבר קיימות.</td></tr>
+            <tr class="highlighted"><td class="line-num">143</td><td class="line-code">    <span class="kw">if</span> <span class="va">args</span>.<span class="va">name</span>:</td><td class="line-explain important">מסתעפת לשני מסלולים: אם --name ניתן → discovery mode. אחרת → URL ישיר. זה ה-"CRM trigger" — discovery מדמה קבלת שם+טלפון מ-CRM בלי URL.</td></tr>
+            <tr><td class="line-num">145</td><td class="line-code">        <span class="kw">if not</span> <span class="va">args</span>.<span class="va">phone</span> <span class="kw">or not</span> <span class="va">args</span>.<span class="va">location</span>:</td><td class="line-explain warn">ולידציה ידנית — argparse לא יכול לאכוף תלות בין שדות. אם יש --name בלי --phone או --location → יוצא עם שגיאה.</td></tr>
+            <tr><td class="line-num">147</td><td class="line-code">            <span class="bi">sys</span>.<span class="fn">exit</span>(<span class="num">1</span>)</td><td class="line-explain">sys.exit(1) = יוצא מהתוכנית עם קוד שגיאה 1 (exit code 0 = הצלחה, 1+ = שגיאה). מניע הרצת pipeline עם נתונים חסרים.</td></tr>
+            <tr><td class="line-num">151</td><td class="line-code">        <span class="va">discovered_urls</span> <span class="op">=</span> <span class="fn">discover_assets</span>(args.name, args.phone, args.location)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → discover_assets()</span> מריץ DuckDuckGo, מוצא candidates, מאמת כל אחד ע"י בדיקת טלפון בדף. <span class="fb-ret">→ מחזיר: list of verified URLs</span></td></tr>
+            <tr><td class="line-num">152</td><td class="line-code">        <span class="kw">if not</span> <span class="va">discovered_urls</span>:</td><td class="line-explain">אם לא נמצאו URLs מאומתים (לא נמצאה נוכחות דיגיטלית עם הטלפון הזה) — אין טעם להמשיך.</td></tr>
+            <tr><td class="line-num">154</td><td class="line-code">            <span class="bi">sys</span>.<span class="fn">exit</span>(<span class="num">1</span>)</td><td class="line-explain">יציאה עם שגיאה — לא נמצאו assets מאומתים.</td></tr>
+            <tr><td class="line-num">156</td><td class="line-code">        <span class="va">base_url</span> <span class="op">=</span> <span class="va">discovered_urls</span>[<span class="num">0</span>]</td><td class="line-explain">ה-URL הראשון ברשימה — נחשב לאתר הראשי של הלקוח. ישמש לאיסוף תמונות ב-run_pipeline.</td></tr>
+            <tr><td class="line-num">157</td><td class="line-code">        <span class="va">scraped</span> <span class="op">=</span> <span class="fn">scrape_multiple</span>(discovered_urls)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → scrape_multiple()</span> סורק כל URL מהרשימה המאומתת + דפים פנימיים. מחזיר dict גדול של כל הטקסט מכל המקורות. <span class="fb-ret">→ מחזיר: dict {url→text}</span></td></tr>
+            <tr><td class="line-num">159</td><td class="line-code">    <span class="kw">else</span>:</td><td class="line-explain">מצב URL ישיר — לא ניתן --name, אז בודקים --url → positional_url → DEMO_URL.</td></tr>
+            <tr><td class="line-num">161</td><td class="line-code">        <span class="va">base_url</span> <span class="op">=</span> <span class="va">args</span>.<span class="va">url</span> <span class="kw">or</span> <span class="va">args</span>.<span class="va">positional_url</span> <span class="kw">or</span> <span class="va">DEMO_URL</span></td><td class="line-explain key">שרשרת or — Python מחזיר את הערך הראשון שהוא truthy. אם --url ריק → בודק positional_url → אם גם ריק → DEMO_URL (ה-demo של יגאל).</td></tr>
+            <tr><td class="line-num">165</td><td class="line-code">        <span class="va">scraped</span> <span class="op">=</span> <span class="fn">scrape_client</span>(base_url)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → scrape_client()</span> סורק URL בודד + דפים פנימיים + satellite sites (WordPress/Weebly). <span class="fb-ret">→ מחזיר: dict {url→text}</span></td></tr>
+            <tr><td class="line-num">167</td><td class="line-code">    <span class="fn">run_pipeline</span>(scraped, base_url=base_url)</td><td class="line-explain good"><span class="fb fb-main">main.py → run_pipeline()</span> בשני המסלולים — discovery ו-direct — מגיעים לאותה פונקציה עם אותה מבנה נתונים (dict). מכאן Claude מקבל שליטה.</td></tr>
+            <tr><td class="line-num">170</td><td class="line-code"><span class="kw">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="str">"__main__"</span>:</td><td class="line-explain key">Python idiom: __name__ הוא "__main__" רק כשמריצים ישירות. כשקובץ אחר עושה import main — הערך הוא "main", ולכן main() לא רצה. מאפשר לייבא בלי הפעלה.</td></tr>
+            <tr><td class="line-num">171</td><td class="line-code">    <span class="fn">main</span>()</td><td class="line-explain">קריאה ל-main(). נקודת הכניסה האמיתית לכל ה-pipeline.</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div><!-- /main.py -->
+
+  <div class="flow-arrow">↓ main() קורא ל-scraper.py ↓</div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- SCRAPER.PY -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="file-section" id="scraper-py">
+    <div class="file-header scraper-py">
+      <div class="file-icon">🕷️</div>
+      <div class="file-header-info">
+        <h2>scraper.py</h2>
+        <p>כל לוגיקת הסריקה — HTTP requests, פרסינג HTML, discovery עם DuckDuckGo, ואימות מספר טלפון.</p>
+      </div>
+    </div>
+
+    <div id="scrape-url">
+      <div class="func-divider">
+        <div class="func-name green">Imports &amp; Constants</div>
+        <hr>
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>scraper.py — lines 1-27</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">11</td><td class="line-code"><span class="kw">import</span> <span class="va">re</span></td><td class="line-explain">Regex — לנרמול מספרי טלפון (להסיר מקפים, רווחים).</td></tr>
+            <tr><td class="line-num">12</td><td class="line-code"><span class="kw">import</span> <span class="va">requests</span></td><td class="line-explain">ספרייה חיצונית לביצוע HTTP GET. הלב של הסריקה.</td></tr>
+            <tr><td class="line-num">13</td><td class="line-code"><span class="kw">from</span> <span class="va">bs4</span> <span class="kw">import</span> <span class="fn">BeautifulSoup</span></td><td class="line-explain key">BeautifulSoup4 — מפרסר HTML גולמי ומאפשר חיפוש של tags, links, images.</td></tr>
+            <tr><td class="line-num">14</td><td class="line-code"><span class="kw">from</span> <span class="va">urllib.parse</span> <span class="kw">import</span> <span class="fn">urljoin, urlparse</span></td><td class="line-explain">כלים לניתוח URL: urljoin הופך URL יחסי ("/about") למוחלט, urlparse מחלץ domain/path.</td></tr>
+            <tr><td class="line-num">15</td><td class="line-code"><span class="kw">from</span> <span class="va">ddgs</span> <span class="kw">import</span> <span class="fn">DDGS</span></td><td class="line-explain important">DuckDuckGo Search API — wrapper Python ל-DuckDuckGo. לא Google (לא צריך API key).</td></tr>
+            <tr><td class="line-num">17-19</td><td class="line-code"><span class="va">HEADERS</span> <span class="op">=</span> {<span class="str">"User-Agent"</span>: <span class="str">"Mozilla/5.0 ..."</span>}<br><span class="va">TIMEOUT</span> <span class="op">=</span> <span class="num">10</span></td><td class="line-explain warn">User-Agent מונה חסימה (אתרים חוסמים בקשות "Python"). TIMEOUT מונע תקיעה.</td></tr>
+            <tr><td class="line-num">23-27</td><td class="line-code"><span class="va">SKIP_DOMAINS</span> <span class="op">=</span> {<span class="str">"google.com"</span>, <span class="str">"facebook.com"</span>, ...}</td><td class="line-explain">set של domains לדלג עליהם — לא ניתן לסרוק אותם (login required / irrelevant).</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box yellow">
+        <h4>Why do we skip Facebook, Instagram, X, etc.?</h4>
+        <p><strong>Reason 1 — you can't scrape them.</strong> These platforms require you to be logged in to see any real content. If you try to scrape them with <code>requests.get()</code> (which has no login), you get a login wall — not the business's actual posts. You'd be scraping a page that says "sign in to continue", which is useless.</p>
+        <br>
+        <p><strong>Reason 2 — even if you could, the content is noise.</strong> The scraper is looking for clean business information: phone numbers, service descriptions, addresses. Social media pages are packed with garbage: reaction counts, "share", "follow", "sponsored", timestamps, recommended posts from other accounts. Claude would have to wade through massive amounts of junk to find one phone number.</p>
+        <br>
+        <p><strong>Why is it a <code>set</code> and not a <code>list</code>?</strong></p>
+        <pre style="background:var(--bg); padding:12px 16px; border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:13px; margin:8px 0;">SKIP_DOMAINS = {"google.com", "facebook.com", ...}  <span style="color:#484f58"># set — curly braces, no key:value</span></pre>
+        <p>The check later is <code>if skip in domain</code> — a membership test. A <code>set</code> answers that instantly no matter how many items it contains. A <code>list</code> would check one by one. For 11 items it makes no real difference, but a <code>set</code> is the semantically correct choice for "is this thing a member of this collection."</p>
+      </div>
+
+      <div class="func-divider">
+        <div class="func-name green">scrape_url()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        The most basic building block of the scraper. Give it a URL, it downloads the page, strips out all the HTML tags, scripts, and styles, and returns just the clean readable text. If anything goes wrong (page doesn't exist, timeout, network error) it returns a string starting with <code>[ERROR</code> instead of crashing. Every other scraping function in the project calls this one.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>scraper.py — lines 32-50 (scrape_url)</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">32</td><td class="line-code"><span class="kw">def</span> <span class="fn">scrape_url</span>(url, encoding=<span class="kw2">None</span>):</td><td class="line-explain">הפונקציה הבסיסית ביותר — מקבל URL, מחזיר טקסט נקי.</td></tr>
+            <tr><td class="line-num">34</td><td class="line-code">    <span class="kw">try</span>:</td><td class="line-explain">try/except כי כל request יכול להיכשל (network, timeout, 404).</td></tr>
+            <tr><td class="line-num">35</td><td class="line-code">        <span class="va">resp</span> <span class="op">=</span> <span class="va">requests</span>.<span class="fn">get</span>(url, headers=<span class="va">HEADERS</span>, timeout=<span class="va">TIMEOUT</span>)</td><td class="line-explain key">HTTP GET request. מחכה עד 10 שניות. מחזיר Response object.</td></tr>
+            <tr><td class="line-num">36</td><td class="line-code">        <span class="va">resp</span>.<span class="fn">raise_for_status</span>()</td><td class="line-explain important">אם הגיע status code 4xx/5xx — זורק exception. בלי זה, גם 404 "מצליח".</td></tr>
+            <tr><td class="line-num">37-40</td><td class="line-code">        <span class="kw">if</span> <span class="va">encoding</span>:<br>            <span class="va">resp</span>.<span class="va">encoding</span> <span class="op">=</span> <span class="va">encoding</span><br>        <span class="kw">else</span>:<br>            <span class="va">resp</span>.<span class="va">encoding</span> <span class="op">=</span> <span class="va">resp</span>.<span class="va">apparent_encoding</span></td><td class="line-explain warn">requests מנחש encoding. <code>apparent_encoding</code> מנתח את ה-byte pattern. חשוב לעברית (Windows-1255 vs UTF-8).</td></tr>
+            <tr><td class="line-num">42</td><td class="line-code">        <span class="va">soup</span> <span class="op">=</span> <span class="fn">BeautifulSoup</span>(<span class="va">resp</span>.<span class="va">text</span>, <span class="str">"html.parser"</span>)</td><td class="line-explain key">מפרסר את ה-HTML. "html.parser" = parser מובנה של Python (אין dependency).</td></tr>
+            <tr><td class="line-num">43-44</td><td class="line-code">        <span class="kw">for</span> <span class="va">tag</span> <span class="kw">in</span> <span class="va">soup</span>([<span class="str">"script"</span>, <span class="str">"style"</span>, <span class="str">"noscript"</span>]):<br>            <span class="va">tag</span>.<span class="fn">decompose</span>()</td><td class="line-explain good">מסיר script/style tags לפני שמחלץ טקסט — בלי זה, ה-JS/CSS "נכנס" לטקסט.</td></tr>
+            <tr><td class="line-num">46</td><td class="line-code">        <span class="va">text</span> <span class="op">=</span> <span class="va">soup</span>.<span class="fn">get_text</span>(separator=<span class="str">"\n"</span>, strip=<span class="kw2">True</span>)</td><td class="line-explain">מחלץ טקסט נקי מ-HTML. separator="\n" שם newline בין elements.</td></tr>
+            <tr><td class="line-num">47</td><td class="line-code">        <span class="va">lines</span> <span class="op">=</span> [<span class="va">line</span> <span class="kw">for</span> <span class="va">line</span> <span class="kw">in</span> <span class="va">text</span>.<span class="fn">splitlines</span>() <span class="kw">if</span> <span class="va">line</span>.<span class="fn">strip</span>()]</td><td class="line-explain key">List comprehension — מסנן שורות ריקות. כך נמנע tokens מיותרים לClaude.</td></tr>
+            <tr><td class="line-num">48</td><td class="line-code">        <span class="kw">return</span> <span class="str">"\n"</span>.<span class="fn">join</span>(lines)</td><td class="line-explain">מחבר חזרה לטקסט. מחזיר string נקי.</td></tr>
+            <tr><td class="line-num">49-50</td><td class="line-code">    <span class="kw">except</span> <span class="bi">Exception</span> <span class="kw">as</span> <span class="va">e</span>:<br>        <span class="kw">return</span> <span class="str">f"[ERROR scraping {url}: {e}]"</span></td><td class="line-explain warn">כל שגיאה מחזירה string שמתחיל ב-[ERROR. הקוד אחר כך בודק <code>if text.startswith("[ERROR"</code>.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box orange">
+        <h4>raise_for_status() — why "success" isn't always success</h4>
+        <p>When you make an HTTP request, the server always responds — even for pages that don't exist. A 404 (Not Found) is still a response. Without <code>raise_for_status()</code>, the code would happily continue with the 404 error page's HTML content as if it were real data.</p>
+        <pre style="background:var(--bg); padding:10px 14px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12px; margin:10px 0; line-height:1.9;">resp = requests.get(url)
+resp.raise_for_status()   <span style="color:#484f58"># throws an exception if status is 4xx or 5xx</span>
+<span style="color:#484f58"># 200 OK      → continues normally</span>
+<span style="color:#484f58"># 404 Not Found → raises exception → caught by except → returns "[ERROR...]"</span>
+<span style="color:#484f58"># 500 Server Error → same</span></pre>
+      </div>
+
+      <div class="explain-box cyan">
+        <h4>apparent_encoding — why Hebrew breaks without it</h4>
+        <p>Every text file is stored as bytes. <strong>Encoding</strong> is the rulebook that maps those bytes to characters. Hebrew websites often use <strong>Windows-1255</strong> or <strong>ISO-8859-8</strong> instead of UTF-8. If you read the bytes with the wrong encoding, you get garbage like <code>×™×'×¢×œ</code> instead of <code>יגאל</code>.</p>
+        <p><code>resp.apparent_encoding</code> uses the <strong>chardet</strong> library to analyze the actual byte patterns and guess the correct encoding — the same way a human would look at text and tell if it's garbled. It's not perfect, but it handles the vast majority of Israeli websites correctly.</p>
+      </div>
+
+      <div class="explain-box green">
+        <h4>try/except + returning "[ERROR...]" instead of crashing</h4>
+        <p>A normal function would <strong>raise</strong> an exception when something goes wrong and let the caller deal with it. <code>scrape_url()</code> makes a different choice: it catches every possible exception and returns a string that starts with <code>[ERROR</code>.</p>
+        <p><strong>Why?</strong> Because the scraper calls this function in loops — scraping 10, 20, 30 URLs in one run. If one URL fails, we don't want the whole pipeline to crash. We want it to note the failure and move on. The callers check <code>if text.startswith("[ERROR")</code> and skip bad results. This is a deliberate design pattern called <strong>"error as value"</strong> — the error is just another return value, not an exceptional event.</p>
+      </div>
+
+      <div class="explain-box blue">
+        <h4>List comprehension — filtering in one line</h4>
+        <p>This line filters out blank lines from the scraped text:</p>
+        <pre style="background:var(--bg); padding:10px 14px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12px; margin:10px 0; line-height:1.9;">lines = [line for line in text.splitlines() if line.strip()]</pre>
+        <p>The long way to write the same thing:</p>
+        <pre style="background:var(--bg); padding:10px 14px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12px; margin:10px 0; line-height:1.9;">lines = []
+for line in text.splitlines():   <span style="color:#484f58"># split text into list of lines</span>
+    if line.strip():              <span style="color:#484f58"># .strip() removes spaces — if result is not empty</span>
+        lines.append(line)        <span style="color:#484f58"># keep it</span></pre>
+        <p>The list comprehension is just a compressed version: <code>[what_to_keep for item in iterable if condition]</code>. It's idiomatic Python — you'll see it everywhere.</p>
+      </div>
+
+    <div id="collect-images">
+      <div class="func-divider">
+        <div class="func-name green">collect_images()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        Crawls the client's website and collects up to 8 real image URLs. It goes through the homepage and all internal pages looking for <code>&lt;img&gt;</code> tags, then filters out anything that isn't a proper photo — no icons, no SVGs, no images from external CDNs, no base64 data URIs. Returns a list of image URLs that Claude can use to build real galleries in the draft website and minisite, instead of showing empty gray placeholder boxes.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>scraper.py — lines 53-93 (collect_images)</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">53</td><td class="line-code"><span class="kw">def</span> <span class="fn">collect_images</span>(base_url, max_images=<span class="num">8</span>):</td><td class="line-explain">אוסף URLs של תמונות אמיתיות מהאתר. ישמשו ב-llm.py ליצירת גלריות. <span class="fb-ret">→ מחזיר: list of {url, alt}</span></td></tr>
+            <tr><td class="line-num">60</td><td class="line-code">    <span class="va">base_domain</span> <span class="op">=</span> <span class="fn">urlparse</span>(base_url).<span class="va">netloc</span></td><td class="line-explain key">חולץ רק את ה-domain. urlparse("https://www.imazganim.co.il/about").netloc = "www.imazganim.co.il". ישמש לסינון תמונות חיצוניות.</td></tr>
+            <tr><td class="line-num">61</td><td class="line-code">    <span class="va">found</span> <span class="op">=</span> {}  <span class="cm"># url → alt text</span></td><td class="line-explain">dict (לא list) — כי אותה תמונה יכולה להופיע בכמה עמודים. dict מונע כפילויות אוטומטית (key ייחודי).</td></tr>
+            <tr><td class="line-num">63</td><td class="line-code">    <span class="va">urls_to_check</span> <span class="op">=</span> [base_url] <span class="op">+</span> <span class="fn">discover_internal_pages</span>(base_url)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → discover_internal_pages()</span> מוצא דפים פנימיים. [base_url] + list = מחבר שני lists. בודקים גם ה-homepage וגם כל הדפים הפנימיים לתמונות. <span class="fb-ret">→ discover_internal_pages מחזיר: list of URLs</span></td></tr>
+            <tr><td class="line-num">65</td><td class="line-code">    <span class="kw">for</span> <span class="va">page_url</span> <span class="kw">in</span> <span class="va">urls_to_check</span>:</td><td class="line-explain">לולאה על כל עמוד לבדיקה.</td></tr>
+            <tr><td class="line-num">66</td><td class="line-code">        <span class="kw">if</span> <span class="fn">len</span>(<span class="va">found</span>) <span class="op">&gt;=</span> <span class="va">max_images</span>:</td><td class="line-explain">early exit — אם כבר אספנו 8 תמונות, אין טעם להמשיך לסרוק. חוסך זמן.</td></tr>
+            <tr><td class="line-num">67</td><td class="line-code">            <span class="kw">break</span></td><td class="line-explain">break = יוצא מהלולאה החיצונית לגמרי (לא רק לiטרציה הבאה כמו continue).</td></tr>
+            <tr><td class="line-num">69</td><td class="line-code">            <span class="va">resp</span> <span class="op">=</span> <span class="va">requests</span>.<span class="fn">get</span>(page_url, headers=<span class="va">HEADERS</span>, timeout=<span class="va">TIMEOUT</span>)</td><td class="line-explain">HTTP GET על כל עמוד. לא קוראים ל-scrape_url() כי צריכים גישה ל-HTML המקורי (לsoup.find_all("img")), לא רק טקסט.</td></tr>
+            <tr><td class="line-num">71</td><td class="line-code">            <span class="va">soup</span> <span class="op">=</span> <span class="fn">BeautifulSoup</span>(<span class="va">resp</span>.<span class="va">text</span>, <span class="str">"html.parser"</span>)</td><td class="line-explain">מפרסר ה-HTML לעץ. soup מאפשר לחפש &lt;img&gt; tags.</td></tr>
+            <tr><td class="line-num">72</td><td class="line-code">            <span class="kw">for</span> <span class="va">img</span> <span class="kw">in</span> <span class="va">soup</span>.<span class="fn">find_all</span>(<span class="str">"img"</span>):</td><td class="line-explain">מוצא כל &lt;img&gt; tag בעמוד. find_all("img") = list של כל img elements.</td></tr>
+            <tr><td class="line-num">73</td><td class="line-code">                <span class="va">src</span> <span class="op">=</span> <span class="va">img</span>.<span class="fn">get</span>(<span class="str">"src"</span>, <span class="str">""</span>)</td><td class="line-explain">חולץ את ה-src attribute. .get() עם default — אם אין src (img ללא source) → מחזיר "".</td></tr>
+            <tr><td class="line-num">74</td><td class="line-code">                <span class="kw">if not</span> <span class="va">src</span> <span class="kw">or</span> <span class="va">src</span>.<span class="fn">startswith</span>(<span class="str">"data:"</span>):</td><td class="line-explain">מסנן 2 מקרים: src ריק (img ללא src), או data URI (base64 inline image כמו "data:image/png;base64,ABC..."). אלה ארוכים ולא URLים.</td></tr>
+            <tr><td class="line-num">75</td><td class="line-code">                    <span class="kw">continue</span></td><td class="line-explain">דולג לimg הבא.</td></tr>
+            <tr><td class="line-num">76</td><td class="line-code">                <span class="va">full_url</span> <span class="op">=</span> <span class="fn">urljoin</span>(page_url, src)</td><td class="line-explain key">urljoin הופך URL יחסי למוחלט. urljoin("https://imazganim.co.il/about", "/images/ac.jpg") = "https://imazganim.co.il/images/ac.jpg". גם URLs מוחלטים עוברים ללא שינוי.</td></tr>
+            <tr><td class="line-num">78</td><td class="line-code">                <span class="kw">if</span> <span class="fn">urlparse</span>(full_url).<span class="va">netloc</span> <span class="op">!=</span> <span class="va">base_domain</span>:</td><td class="line-explain important">סינון קריטי — רק תמונות מה-domain של הלקוח. תמונות מ-CDN חיצוני (cloudfront.net, cdn.wix.com) נפסלות כי הן עשויות להשתנות או להיות נעולות.</td></tr>
+            <tr><td class="line-num">79</td><td class="line-code">                    <span class="kw">continue</span></td><td class="line-explain">תמונה חיצונית — דלג.</td></tr>
+            <tr><td class="line-num">81</td><td class="line-code">                <span class="va">ext</span> <span class="op">=</span> full_url.<span class="fn">split</span>(<span class="str">"?"</span>)[<span class="num">0</span>].<span class="fn">lower</span>()</td><td class="line-explain">מסיר query params לפני בדיקת סיומת. "https://imazganim.co.il/ac.jpg?v=2" → "https://imazganim.co.il/ac.jpg". .lower() לבדיקה case-insensitive.</td></tr>
+            <tr><td class="line-num">82</td><td class="line-code">                <span class="kw">if not</span> <span class="fn">any</span>(<span class="va">ext</span>.<span class="fn">endswith</span>(<span class="va">e</span>) <span class="kw">for</span> <span class="va">e</span> <span class="kw">in</span> [<span class="str">".jpg"</span>, <span class="str">".jpeg"</span>, <span class="str">".png"</span>, <span class="str">".webp"</span>]):</td><td class="line-explain">any() עם generator expression. בודק שהtמונה היא בפורמט "אמיתי" — מסנן SVG (גרפיקה וקטורית), GIF (אנימציות), ICO (icons).</td></tr>
+            <tr><td class="line-num">83</td><td class="line-code">                    <span class="kw">continue</span></td><td class="line-explain">סיומת לא מתאימה — דלג.</td></tr>
+            <tr><td class="line-num">84</td><td class="line-code">                <span class="kw">if</span> <span class="va">full_url</span> <span class="kw">not in</span> <span class="va">found</span>:</td><td class="line-explain">בודק שה-URL לא כבר ב-found (dict). מונע כפילויות.</td></tr>
+            <tr><td class="line-num">85</td><td class="line-code">                    <span class="va">found</span>[<span class="va">full_url</span>] <span class="op">=</span> <span class="va">img</span>.<span class="fn">get</span>(<span class="str">"alt"</span>, <span class="str">""</span>)</td><td class="line-explain good">מוסיף לdict. key = URL תמונה, value = alt text (לנגישות). .get("alt", "") = אם אין alt attribute → "".</td></tr>
+            <tr><td class="line-num">91</td><td class="line-code">    <span class="va">result</span> <span class="op">=</span> [{<span class="str">"url"</span>: url, <span class="str">"alt"</span>: alt} <span class="kw">for</span> <span class="va">url</span>, <span class="va">alt</span> <span class="kw">in</span> <span class="va">found</span>.<span class="fn">items</span>()]</td><td class="line-explain">list comprehension — ממיר את ה-dict ל-list של dicts. כל dict: {"url": "https://...", "alt": "תמונת מזגן"}. זה הפורמט שllm.py מצפה לו.</td></tr>
+            <tr><td class="line-num">93</td><td class="line-code">    <span class="kw">return</span> <span class="va">result</span></td><td class="line-explain">מחזיר לrun_pipeline. ישמש ב-generate_draft_website() וב-generate_draft_minisite() לבניית גלריות.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box purple">
+        <h4>any() with a generator expression</h4>
+        <p>This pattern appears multiple times in the project:</p>
+        <pre style="background:var(--bg); padding:10px 14px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12px; margin:10px 0; line-height:1.9;">if not any(ext.endswith(e) for e in [".jpg", ".jpeg", ".png", ".webp"]):
+    continue</pre>
+        <p><code>any()</code> returns <code>True</code> if at least one item in an iterable is truthy. The part inside is a <strong>generator expression</strong> — like a list comprehension but it doesn't build the full list, it evaluates one item at a time and stops as soon as one is True (short-circuit).</p>
+        <p>The long version of the same thing:</p>
+        <pre style="background:var(--bg); padding:10px 14px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12px; margin:10px 0; line-height:1.9;">found = False
+for e in [".jpg", ".jpeg", ".png", ".webp"]:
+    if ext.endswith(e):
+        found = True
+        break
+if not found:
+    continue</pre>
+        <p><code>any(condition for x in iterable)</code> replaces all of that with one line. You'll see it used alongside <code>all()</code> — which requires every item to be truthy instead of just one.</p>
+      </div>
+
+    <div id="discover-pages">
+      <div class="func-divider">
+        <div class="func-name green">discover_internal_pages()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        Takes a homepage URL and finds all the other pages on the same website. It scrapes the homepage, looks at every link (<code>&lt;a href&gt;</code>), keeps only the ones that point to the same domain, and returns them as a list. This is how we go from just the homepage to also scraping the About, Services, and Contact pages — without knowing their URLs in advance.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>scraper.py — lines 96-117</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">96</td><td class="line-code"><span class="kw">def</span> <span class="fn">discover_internal_pages</span>(base_url):</td><td class="line-explain">מחזיר list של URLs פנימיים מהדף הראשי.</td></tr>
+            <tr><td class="line-num">103</td><td class="line-code">    <span class="va">base_domain</span> <span class="op">=</span> <span class="fn">urlparse</span>(base_url).<span class="va">netloc</span></td><td class="line-explain">שומר את ה-domain כדי לסנן קישורים חיצוניים.</td></tr>
+            <tr><td class="line-num">106-112</td><td class="line-code">        <span class="kw">for</span> <span class="va">link</span> <span class="kw">in</span> <span class="va">soup</span>.<span class="fn">find_all</span>(<span class="str">"a"</span>, href=<span class="kw2">True</span>):<br>            <span class="va">href</span> <span class="op">=</span> link[<span class="str">"href"</span>]<br>            <span class="va">full_url</span> <span class="op">=</span> <span class="fn">urljoin</span>(base_url, href)<br>            <span class="va">parsed</span> <span class="op">=</span> <span class="fn">urlparse</span>(full_url)<br>            <span class="kw">if</span> <span class="va">parsed</span>.<span class="va">netloc</span> <span class="op">==</span> <span class="va">base_domain</span> <span class="kw">and</span> <span class="va">parsed</span>.<span class="va">path</span> <span class="op">not in</span> (<span class="str">"/"</span>, <span class="str">""</span>):</td><td class="line-explain key">מוצא כל <code>&lt;a href&gt;</code> — ממיר ל-URL מוחלט — בודק שה-domain זהה ואין path ריק.</td></tr>
+            <tr><td class="line-num">112</td><td class="line-code">                <span class="va">clean_url</span> <span class="op">=</span> <span class="str">f"{parsed.scheme}://{parsed.netloc}{parsed.path}"</span></td><td class="line-explain">מסיר query params ו-fragment (#section) — רק ה-path הנקי.</td></tr>
+            <tr><td class="line-num">113</td><td class="line-code">                <span class="va">pages</span>.<span class="fn">add</span>(clean_url)</td><td class="line-explain good"><code>set.add()</code> — set מונעת אוטומטית כפילויות.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box cyan">
+        <h4>urlparse() — the right way to pull apart a URL</h4>
+        <p>A URL has distinct parts. <code>urlparse()</code> splits them cleanly:</p>
+        <pre style="background:var(--bg); padding:10px 14px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12px; margin:10px 0; line-height:1.9;">url = "https://www.imazganim.co.il/services?lang=he#top"
+
+urlparse(url).scheme   → "https"
+urlparse(url).netloc   → "www.imazganim.co.il"   ← the domain
+urlparse(url).path     → "/services"
+urlparse(url).query    → "lang=he"
+urlparse(url).fragment → "top"</pre>
+        <p>The project uses <code>.netloc</code> constantly — to compare domains, to filter external links, to extract a domain name. The alternative (splitting on "://" and "/" manually) is fragile and breaks on edge cases. <code>urlparse()</code> handles every valid URL format correctly.</p>
+      </div>
+
+    <div id="phone-variants">
+      <div class="func-divider">
+        <div class="func-name green">_phone_variants()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        Takes a phone number in any format and returns 4 versions of it. Websites write phone numbers differently — some use dashes, some don't, some drop the leading zero. By generating all 4 formats upfront, the verification step can check if <em>any</em> of them appear on a page, instead of missing a match just because the format is slightly different.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>scraper.py — lines 122-127</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">122</td><td class="line-code"><span class="kw">def</span> <span class="fn">_phone_variants</span>(phone):</td><td class="line-explain">underscore בהתחלה = convention ל-"private" function — לשימוש פנימי רק בscraper.py. מקבל טלפון בפורמט כלשהו, מחזיר 4 פורמטים. <span class="fb-ret">→ מחזיר: set of strings</span></td></tr>
+            <tr><td class="line-num">124</td><td class="line-code">    <span class="va">digits_only</span> <span class="op">=</span> <span class="va">re</span>.<span class="fn">sub</span>(<span class="str">r"\D"</span>, <span class="str">""</span>, phone)</td><td class="line-explain key">re.sub = regex substitution. r"\D" = כל תו שאינו ספרה (D גדול = not digit). מחליף הכל ב-"" (מוחק). "072-3977065" → "0723977065".</td></tr>
+            <tr><td class="line-num">126</td><td class="line-code">    <span class="va">with_dash</span> <span class="op">=</span> <span class="va">re</span>.<span class="fn">sub</span>(<span class="str">r"(\d{3})(\d+)"</span>, <span class="str">r"\1-\2"</span>, digits_only)</td><td class="line-explain important">regex עם groups: (\d{3}) = לכוד 3 ספרות ראשונות, (\d+) = לכוד את השאר. r"\1-\2" = שחזר group 1, מקף, group 2. "0723977065" → "072-3977065".</td></tr>
+            <tr><td class="line-num">127</td><td class="line-code">    <span class="kw">return</span> {phone, digits_only, with_dash, digits_only[<span class="num">1</span>:]}</td><td class="line-explain">מחזיר set literal (לא list). ה-4 פורמטים: הoriginal (phone), ללא מיוחד (digits_only), עם מקף (with_dash), ללא 0 מוביל (digits_only[1:] = "723977065"). set = אין כפילויות.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box yellow">
+        <h4>set vs list — and when to use which</h4>
+        <p><code>_phone_variants()</code> returns a <strong>set</strong>, not a list:</p>
+        <pre style="background:var(--bg); padding:10px 14px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12px; margin:10px 0; line-height:1.9;">return {phone, digits_only, with_dash, digits_only[1:]}  <span style="color:#484f58"># set — curly braces</span></pre>
+        <p>Two reasons:</p>
+        <ul>
+          <li><strong>No duplicates.</strong> If the user passes a phone number that's already in one of the normalized forms (e.g. they pass "0723977065" with no dash), the set automatically collapses that to 3 items instead of having the same number twice.</li>
+          <li><strong>Membership check is the only use.</strong> The variants are only ever used in <code>if any(v in text for v in variants)</code>. You never need to access them by index, sort them, or loop in a specific order. A set is the right tool for "is this thing in this collection?"</li>
+        </ul>
+        <p><strong>Rule of thumb:</strong> use a <code>list</code> when order or duplicates matter. Use a <code>set</code> when you only care about membership and uniqueness.</p>
+      </div>
+
+      <div class="explain-box green">
+        <h4>למה צריך 4 פורמטים?</h4>
+        אתרים שונים כותבים מספרי טלפון בפורמטים שונים. יגאל יכול להופיע כ:
+        <ul>
+          <li><code>072-3977065</code> (הפורמט המקובל)</li>
+          <li><code>0723977065</code> (ללא מקף)</li>
+          <li><code>072 3977065</code> (עם רווח)</li>
+          <li><code>723977065</code> (ללא 0 מקדים — לפעמים בספריות)</li>
+        </ul>
+        כל ה-4 נבדקים בחיפוש ב-page text.
+      </div>
+    </div>
+
+    <div id="discover-assets">
+      <div class="func-divider">
+        <div class="func-name green">discover_assets()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        Given only a business name, phone number, and city — with no URL — this function finds the client's entire digital footprint on its own. It runs 4 different DuckDuckGo searches, collects all the URLs from the results, then verifies each one by actually scraping it and checking that the phone number appears on the page. This filters out false positives (a different person with the same name). Only verified URLs are returned.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>scraper.py — lines 130-188</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">130</td><td class="line-code"><span class="kw">def</span> <span class="fn">discover_assets</span>(business_name, phone, location):</td><td class="line-explain key">מדמה CRM trigger — מקבל רק שם+טלפון+עיר ומחפש בעצמו את כל הנוכחות הדיגיטלית. <span class="fb-ret">→ מחזיר: list of verified URLs</span></td></tr>
+            <tr><td class="line-num">145</td><td class="line-code">    <span class="va">variants</span> <span class="op">=</span> <span class="fn">_phone_variants</span>(phone)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → _phone_variants()</span> מייצר 4 פורמטים של הטלפון. variants = {"072-3977065", "0723977065", "723977065", "072 3977065"}. ישמש לאחר מכן לאימות. <span class="fb-ret">→ מחזיר: set of strings</span></td></tr>
+            <tr><td class="line-num">150</td><td class="line-code">    <span class="va">queries</span> <span class="op">=</span> [</td><td class="line-explain">list של 4 שאילתות DuckDuckGo. כל אחת גישה שונה — אם אחת כושלת, השנייה עשויה להצליח.</td></tr>
+            <tr><td class="line-num">151</td><td class="line-code">        <span class="str">f"{phone} מזגנים"</span>,</td><td class="line-explain important">שאילתה 1 — טלפון + קטגוריה. הכי אמינה: מספר טלפון ספציפי הוא מזהה ייחודי. מחפש: "072-3977065 מזגנים".</td></tr>
+            <tr><td class="line-num">152</td><td class="line-code">        <span class="str">f"{phone} {business_name}"</span>,</td><td class="line-explain">שאילתה 2 — טלפון + שם עסק. "072-3977065 יגאל מזגנים".</td></tr>
+            <tr><td class="line-num">153</td><td class="line-code">        <span class="str">f"{business_name} {location}"</span>,</td><td class="line-explain">שאילתה 3 — שם + מיקום, ללא טלפון. מביאה תוצאות שאולי לא כוללות את הטלפון — לכן תאומתנה בשלב הבא.</td></tr>
+            <tr><td class="line-num">154</td><td class="line-code">        <span class="str">f"{business_name} site:d.co.il OR site:b144.co.il..."</span>,</td><td class="line-explain">שאילתה 4 — ממוקדת בדירקטוריות ישראליות. site: הוא מפעיל חיפוש שמגביל לדומיין ספציפי.</td></tr>
+            <tr><td class="line-num">157</td><td class="line-code">    <span class="va">candidate_urls</span> <span class="op">=</span> <span class="bi">set</span>()</td><td class="line-explain">set ולא list — מונע כפילויות. אם אותו URL מופיע ב-2 שאילתות שונות, ייכנס רק פעם אחת.</td></tr>
+            <tr><td class="line-num">159</td><td class="line-code">    <span class="kw">with</span> <span class="fn">DDGS</span>() <span class="kw">as</span> <span class="va">ddgs</span>:</td><td class="line-explain key">context manager של DuckDuckGo. <code>with ... as</code> מבטיח שה-session ייסגר גם אם יש exception. ddgs = ה-instance לשימוש בתוך הblock.</td></tr>
+            <tr><td class="line-num">160</td><td class="line-code">        <span class="kw">for</span> <span class="va">query</span> <span class="kw">in</span> <span class="va">queries</span>:</td><td class="line-explain">לולאה על 4 השאילתות. בכל איטרציה query = string אחד (למשל "072-3977065 מזגנים").</td></tr>
+            <tr><td class="line-num">162</td><td class="line-code">            <span class="va">results</span> <span class="op">=</span> <span class="va">ddgs</span>.<span class="fn">text</span>(query, max_results=<span class="num">6</span>)</td><td class="line-explain important">שולח את השאילתה ל-DuckDuckGo ומקבל עד 6 תוצאות. כל result הוא dict: {"href": url, "title": כותרת, "body": תקציר}. <span class="fb-ret">→ מחזיר: list of dicts</span></td></tr>
+            <tr><td class="line-num">163</td><td class="line-code">            <span class="kw">for</span> <span class="va">r</span> <span class="kw">in</span> <span class="va">results</span>:</td><td class="line-explain">לולאה על כל תוצאה. r = dict אחד עם href, title, body.</td></tr>
+            <tr><td class="line-num">164</td><td class="line-code">                <span class="va">url</span> <span class="op">=</span> r.<span class="fn">get</span>(<span class="str">"href"</span>, <span class="str">""</span>)</td><td class="line-explain">חולץ את ה-URL מהתוצאה. .get() עם ערך default = לא זורק KeyError אם "href" לא קיים — מחזיר "" במקום.</td></tr>
+            <tr><td class="line-num">165</td><td class="line-code">                <span class="va">domain</span> <span class="op">=</span> <span class="fn">urlparse</span>(url).<span class="va">netloc</span>.<span class="fn">replace</span>(<span class="str">"www."</span>, <span class="str">""</span>)</td><td class="line-explain">מחלץ רק את ה-domain. urlparse("https://www.imazganim.co.il/about").netloc = "www.imazganim.co.il". .replace מסיר "www." → "imazganim.co.il".</td></tr>
+            <tr><td class="line-num">167</td><td class="line-code">                <span class="kw">if not</span> <span class="fn">any</span>(<span class="va">skip</span> <span class="kw">in</span> <span class="va">domain</span> <span class="kw">for</span> <span class="va">skip</span> <span class="kw">in</span> <span class="va">SKIP_DOMAINS</span>):</td><td class="line-explain">any() עם generator expression — בודק אם אחד מה-skip domains מוכל ב-domain. אם facebook.com בSKIP_DOMAINS → "facebook" in "facebook.com" = True → not True = לא נוסיף.</td></tr>
+            <tr><td class="line-num">168</td><td class="line-code">                    <span class="va">candidate_urls</span>.<span class="fn">add</span>(url)</td><td class="line-explain good">מוסיף ל-set. set.add() = אם כבר קיים, לא קורה כלום (אין כפילויות).</td></tr>
+            <tr><td class="line-num">174</td><td class="line-code">    <span class="va">verified</span> <span class="op">=</span> []</td><td class="line-explain">list ריקה לURLs שאומתו. זאת בניגוד ל-candidate_urls שהוא set — כי סדר חשוב (הURL הראשון = האתר הראשי).</td></tr>
+            <tr class="highlighted"><td class="line-num">175</td><td class="line-code">    <span class="kw">for</span> <span class="va">url</span> <span class="kw">in</span> <span class="va">candidate_urls</span>:</td><td class="line-explain important">שלב האימות — רצים על כל candidate ובודקים שהטלפון של הלקוח מופיע בו. כך מסננים "יגאל אחר".</td></tr>
+            <tr><td class="line-num">176</td><td class="line-code">        <span class="va">text</span> <span class="op">=</span> <span class="fn">scrape_url</span>(url)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → scrape_url()</span> סורק את ה-URL ומחזיר טקסט נקי. אם הדף לא נגיש — מחזיר "[ERROR scraping ...]". <span class="fb-ret">→ מחזיר: string</span></td></tr>
+            <tr><td class="line-num">177</td><td class="line-code">        <span class="kw">if</span> <span class="va">text</span>.<span class="fn">startswith</span>(<span class="str">"[ERROR"</span>):</td><td class="line-explain">בודק אם scrape_url נכשל. scrape_url מחזיר "[ERROR scraping...]" במקום לזרוק exception — כך הלולאה ממשיכה לcandidate הבא.</td></tr>
+            <tr><td class="line-num">178</td><td class="line-code">            <span class="kw">continue</span></td><td class="line-explain">דולג לiטרציה הבאה של הלולאה. מיידע את המפתח: "URL לא נגיש — דלג".</td></tr>
+            <tr><td class="line-num">181</td><td class="line-code">        <span class="kw">if</span> <span class="fn">any</span>(<span class="va">v</span> <span class="kw">in</span> <span class="va">text</span> <span class="kw">for</span> <span class="va">v</span> <span class="kw">in</span> <span class="va">variants</span>):</td><td class="line-explain key">הלב של ה-discovery: any() בודק אם לפחות פורמט אחד של הטלפון מופיע בתוך הטקסט הסרוק. "072-3977065" in "...phone: 072-3977065..." = True. אם כן → הURL שייך ללקוח שלנו.</td></tr>
+            <tr><td class="line-num">182</td><td class="line-code">            <span class="va">verified</span>.<span class="fn">append</span>(url)</td><td class="line-explain good">URL מאומת — מוסיף לlist. list.append() שומר על סדר ההכנסה.</td></tr>
+            <tr><td class="line-num">184</td><td class="line-code">        <span class="kw">else</span>: <span class="cm"># phone not found → skip</span></td><td class="line-explain">הטלפון לא נמצא — הURL כנראה של עסק אחר. ממשיך לcandidate הבא.</td></tr>
+            <tr><td class="line-num">187</td><td class="line-code">    <span class="kw">return</span> <span class="va">verified</span></td><td class="line-explain">מחזיר רק URLs שאומתו עם הטלפון. main.py יסרוק אותם ב-scrape_multiple().</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="scrape-client">
+      <div class="func-divider">
+        <div class="func-name green">scrape_client() + format_scraped_data()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What these functions do</div>
+        <strong>scrape_client(base_url)</strong> — the direct-URL scraper. Takes one known URL and pulls everything it can find: the homepage, every internal page linked from it, and attempts at WordPress/Weebly satellite sites using the same domain name. Returns a dict where each key is a source label and each value is the scraped text.<br><br>
+        <strong>format_scraped_data(results)</strong> — takes that dict and merges everything into one big string with clear section headers between each source. This single string is what gets sent to Claude for extraction.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>scraper.py — lines 193-287</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">193</td><td class="line-code"><span class="kw">def</span> <span class="fn">scrape_client</span>(base_url):</td><td class="line-explain">מצב URL ישיר — סורק URL ידוע + כל דפיו הפנימיים + satellite sites. <span class="fb-ret">→ מחזיר: dict {source_name → text}</span></td></tr>
+            <tr><td class="line-num">203</td><td class="line-code">    <span class="va">results</span> <span class="op">=</span> {}</td><td class="line-explain">dict ריק שיצבור את כל הטקסט. מפתח = שם המקור (URL), ערך = הטקסט שנסרק.</td></tr>
+            <tr><td class="line-num">207</td><td class="line-code">    <span class="va">homepage_text</span> <span class="op">=</span> <span class="fn">scrape_url</span>(base_url)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → scrape_url()</span> HTTP GET על ה-URL הראשי, מפרסר HTML, מחזיר טקסט נקי. <span class="fb-ret">→ מחזיר: string</span></td></tr>
+            <tr><td class="line-num">208</td><td class="line-code">    <span class="va">results</span>[<span class="str">f"{base_url} (homepage)"</span>] <span class="op">=</span> homepage_text</td><td class="line-explain">שומר את הטקסט ב-dict עם key שמזהה את המקור. "(homepage)" נוסף ידנית לבהירות — Claude יראה "=== Source: https://imazganim.co.il (homepage) ===".</td></tr>
+            <tr><td class="line-num">211</td><td class="line-code">    <span class="va">internal_pages</span> <span class="op">=</span> <span class="fn">discover_internal_pages</span>(base_url)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → discover_internal_pages()</span> סורק את ה-HTML של הדף הראשי, מוצא כל &lt;a href&gt; פנימי, מחזיר list של URLs ייחודיים. <span class="fb-ret">→ מחזיר: list of URLs</span></td></tr>
+            <tr><td class="line-num">214</td><td class="line-code">    <span class="kw">for</span> <span class="va">page_url</span> <span class="kw">in</span> <span class="va">internal_pages</span>:</td><td class="line-explain">לולאה על כל הדפים הפנימיים שנמצאו (about, services, contact וכו').</td></tr>
+            <tr><td class="line-num">215</td><td class="line-code">        <span class="va">text</span> <span class="op">=</span> <span class="fn">scrape_url</span>(page_url)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → scrape_url()</span> סורק כל דף פנימי. אם הדף לא זמין → מחזיר "[ERROR scraping...]".</td></tr>
+            <tr><td class="line-num">216</td><td class="line-code">        <span class="kw">if not</span> <span class="va">text</span>.<span class="fn">startswith</span>(<span class="str">"[ERROR"</span>):</td><td class="line-explain">בודק שהסריקה הצליחה לפני שמוסיף ל-results. לא רוצים "[ERROR scraping...]" להיכנס ל-context של Claude.</td></tr>
+            <tr><td class="line-num">217</td><td class="line-code">            <span class="va">results</span>[<span class="va">page_url</span>] <span class="op">=</span> text</td><td class="line-explain">מוסיף לdict. מפתח = URL הדף, ערך = הטקסט. ככה Claude יודע מאיזה עמוד הגיע כל מידע.</td></tr>
+            <tr><td class="line-num">222</td><td class="line-code">    <span class="va">domain_name</span> <span class="op">=</span> <span class="fn">urlparse</span>(base_url).<span class="va">netloc</span>.<span class="fn">replace</span>(<span class="str">"www."</span>, <span class="str">""</span>).<span class="fn">split</span>(<span class="str">"."</span>)[<span class="num">0</span>]</td><td class="line-explain key">חולץ את שם ה-domain בלבד. urlparse("https://www.imazganim.co.il").netloc = "www.imazganim.co.il". replace מסיר www. split(".")[0] = "imazganim". ישמש ללנסות WordPress/Weebly.</td></tr>
+            <tr><td class="line-num">224</td><td class="line-code">    <span class="va">satellites</span> <span class="op">=</span> {</td><td class="line-explain warn">dict של "satellite sites" — שירותים שעסקים ישראליים לפעמים יוצרים בחינם עם שם ה-domain שלהם.</td></tr>
+            <tr><td class="line-num">225</td><td class="line-code">        <span class="str">f"WordPress ({domain_name})"</span>: <span class="str">f"https://{domain_name}.wordpress.com/"</span>,</td><td class="line-explain">מנסה https://imazganim.wordpress.com/ — site.wordpress.com הוא פורמט סטנדרטי לWordPress blogs.</td></tr>
+            <tr><td class="line-num">226</td><td class="line-code">        <span class="str">f"Weebly ({domain_name})"</span>: <span class="str">f"https://{domain_name}.weebly.com/"</span>,</td><td class="line-explain">מנסה https://imazganim.weebly.com/ — כנ"ל לWeebly. לא תמיד קיים, אבל בחינם לנסות.</td></tr>
+            <tr><td class="line-num">229</td><td class="line-code">    <span class="kw">for</span> <span class="va">name</span>, <span class="va">url</span> <span class="kw">in</span> <span class="va">satellites</span>.<span class="fn">items</span>():</td><td class="line-explain">לולאה על כל satellite. בכל איטרציה: name = "WordPress (imazganim)", url = ה-URL לנסות.</td></tr>
+            <tr><td class="line-num">230</td><td class="line-code">        <span class="va">text</span> <span class="op">=</span> <span class="fn">scrape_url</span>(url)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → scrape_url()</span> מנסה לסרוק את ה-satellite. אם לא קיים → יחזיר "[ERROR scraping 404]".</td></tr>
+            <tr><td class="line-num">231</td><td class="line-code">        <span class="kw">if not</span> <span class="va">text</span>.<span class="fn">startswith</span>(<span class="str">"[ERROR"</span>):</td><td class="line-explain">רק אם הסריקה הצליחה — מוסיף לresults. רוב הפעמים הsatellite לא קיים ולא מתווסף כלום.</td></tr>
+            <tr><td class="line-num">232</td><td class="line-code">            <span class="va">results</span>[<span class="va">name</span>] <span class="op">=</span> text</td><td class="line-explain">מפתח = name הידידותי (כמו "WordPress (imazganim)"), לא URL. Claude יראה זאת ב-context.</td></tr>
+            <tr><td class="line-num">241</td><td class="line-code">    <span class="kw">return</span> <span class="va">results</span></td><td class="line-explain">מחזיר את כל ה-dict עם כל המקורות שנסרקו בהצלחה. יועבר ל-format_scraped_data() ב-run_pipeline.</td></tr>
+          </table>
+
+          <div style="margin-top:16px; border-top: 1px solid var(--border); padding-top:16px;">
+          <div style="font-size:12px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-bottom:8px;">scraper.py — lines 282-287 (format_scraped_data)</div>
+          <table class="code-table">
+            <tr><td class="line-num">282</td><td class="line-code"><span class="kw">def</span> <span class="fn">format_scraped_data</span>(results):</td><td class="line-explain">מקבל את ה-dict מ-scrape_client()/scrape_multiple(), ממיר לstring אחד לClaude. <span class="fb-ret">→ מחזיר: string</span></td></tr>
+            <tr><td class="line-num">284</td><td class="line-code">    <span class="va">sections</span> <span class="op">=</span> []</td><td class="line-explain">list שיצבור את כל ה-sections לפני שמחבר.</td></tr>
+            <tr><td class="line-num">285</td><td class="line-code">    <span class="kw">for</span> <span class="va">source</span>, <span class="va">text</span> <span class="kw">in</span> <span class="va">results</span>.<span class="fn">items</span>():</td><td class="line-explain">לולאה על כל key-value ב-dict. source = שם המקור (URL), text = הטקסט הסרוק.</td></tr>
+            <tr><td class="line-num">286</td><td class="line-code">        <span class="va">sections</span>.<span class="fn">append</span>(<span class="str">f"=== Source: {source} ===\n{text}"</span>)</td><td class="line-explain key">f-string שיוצר section header. Claude יראה "=== Source: https://imazganim.co.il (homepage) ===\n[טקסט...]". כך Claude יודע מאיפה כל מידע.</td></tr>
+            <tr><td class="line-num">287</td><td class="line-code">    <span class="kw">return</span> <span class="str">"\n\n"</span>.<span class="fn">join</span>(sections)</td><td class="line-explain">מחבר את כל ה-sections עם שורה ריקה בין כל אחד. .join() = join(separator).join(iterable). מחזיר string אחד גדול.</td></tr>
+          </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="func-divider">
+        <div class="func-name green">scrape_multiple() — discovery mode scraper</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        Used after discovery mode — when <code>discover_assets()</code> has already found and verified a list of URLs. Loops through each URL, scrapes it, and for any URL that belongs to the client's own website (not a directory listing), also scrapes all its internal pages. Returns the same dict format as <code>scrape_client()</code> so that <code>run_pipeline()</code> doesn't need to care which mode was used.
+      </div>
+
+      <div class="explain-box green">
+        <h4>scrape_multiple() vs scrape_client() — מה ההבדל?</h4>
+        <ul>
+          <li><strong>scrape_client(base_url)</strong> — יודעים URL אחד ספציפי. סורקים אותו + דפים פנימיים + satellite sites.</li>
+          <li><strong>scrape_multiple(urls)</strong> — מקבלים list של URLs שנמצאו ב-discovery. סורקים כל אחד, אבל לא מנסים satellite sites (כי הurls כבר מגיעים מduckduckgo).</li>
+          <li>שתיהן מחזירות אותו פורמט: dict {url → text}</li>
+        </ul>
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>scraper.py — lines 244-279 (scrape_multiple)</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">244</td><td class="line-code"><span class="kw">def</span> <span class="fn">scrape_multiple</span>(urls):</td><td class="line-explain">מקבל list של URLs מאומתים מ-discover_assets(). סורק כל אחד ומחזיר dict. <span class="fb-ret">→ מחזיר: dict {url → text}</span></td></tr>
+            <tr><td class="line-num">254</td><td class="line-code">    <span class="va">results</span> <span class="op">=</span> {}</td><td class="line-explain">dict ריק שיצבור טקסט מכל המקורות.</td></tr>
+            <tr><td class="line-num">256</td><td class="line-code">    <span class="kw">for</span> <span class="va">base_url</span> <span class="kw">in</span> <span class="va">urls</span>:</td><td class="line-explain">לולאה על כל URL שdiscovery מצאה. בכל איטרציה: base_url = URL אחד (כמו "https://imazganim.co.il").</td></tr>
+            <tr><td class="line-num">258</td><td class="line-code">        <span class="va">homepage_text</span> <span class="op">=</span> <span class="fn">scrape_url</span>(base_url)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → scrape_url()</span> HTTP GET על ה-URL. אם 404 או timeout → "[ERROR scraping...]". <span class="fb-ret">→ מחזיר: string</span></td></tr>
+            <tr><td class="line-num">259</td><td class="line-code">        <span class="kw">if</span> <span class="va">homepage_text</span>.<span class="fn">startswith</span>(<span class="str">"[ERROR"</span>):</td><td class="line-explain">בודק שה-URL נגיש. אם לא — דולגים על כל ה-URL הזה (לא נסרק).</td></tr>
+            <tr><td class="line-num">260</td><td class="line-code">            <span class="kw">continue</span></td><td class="line-explain">continue = דלג לiטרציה הבאה. לא מוסיפים כלום ל-results.</td></tr>
+            <tr><td class="line-num">263</td><td class="line-code">        <span class="va">results</span>[<span class="str">f"{base_url} (homepage)"</span>] <span class="op">=</span> homepage_text</td><td class="line-explain">שומר את ה-homepage. key מכיל "(homepage)" לבהירות ב-context של Claude.</td></tr>
+            <tr><td class="line-num">268</td><td class="line-code">        <span class="va">domain</span> <span class="op">=</span> <span class="fn">urlparse</span>(base_url).<span class="va">netloc</span></td><td class="line-explain">מחלץ רק את ה-domain. "www.imazganim.co.il". ישמש לבדוק אם כדאי לחפש דפים פנימיים.</td></tr>
+            <tr><td class="line-num">269</td><td class="line-code">        <span class="kw">if not</span> <span class="fn">any</span>(<span class="va">d</span> <span class="kw">in</span> <span class="va">domain</span> <span class="kw">for</span> <span class="va">d</span> <span class="kw">in</span> [<span class="str">"d.co.il"</span>, <span class="str">"b144"</span>, <span class="str">"yad2"</span>, <span class="str">"facebook"</span>]):</td><td class="line-explain key">בדירקטוריות (d.co.il, b144) יש אלפי links — לא רוצים לסרוק דפים פנימיים שלהם. אם ה-URL הוא לאתר הלקוח עצמו (לא דירקטוריה) → כן סורקים דפים פנימיים.</td></tr>
+            <tr><td class="line-num">270</td><td class="line-code">            <span class="va">internal</span> <span class="op">=</span> <span class="fn">discover_internal_pages</span>(base_url)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → discover_internal_pages()</span> מוצא דפים פנימיים. <span class="fb-ret">→ מחזיר: list of URLs</span></td></tr>
+            <tr><td class="line-num">271</td><td class="line-code">            <span class="kw">for</span> <span class="va">page_url</span> <span class="kw">in</span> <span class="va">internal</span>:</td><td class="line-explain">לולאה על כל דף פנימי. nested loop — לולאה בתוך לולאה.</td></tr>
+            <tr><td class="line-num">272</td><td class="line-code">                <span class="va">text</span> <span class="op">=</span> <span class="fn">scrape_url</span>(page_url)</td><td class="line-explain"><span class="fb fb-scraper">scraper.py → scrape_url()</span> סורק כל דף פנימי.</td></tr>
+            <tr><td class="line-num">273</td><td class="line-code">                <span class="kw">if not</span> <span class="va">text</span>.<span class="fn">startswith</span>(<span class="str">"[ERROR"</span>):</td><td class="line-explain">בודק הצלחה לפני הוספה. error check זהה לכל scrape בפרויקט.</td></tr>
+            <tr><td class="line-num">274</td><td class="line-code">                    <span class="va">results</span>[<span class="va">page_url</span>] <span class="op">=</span> text</td><td class="line-explain">מוסיף לdict. לאחר סיום כל הלולאות, results = כל מה שנסרק בהצלחה.</td></tr>
+            <tr><td class="line-num">277</td><td class="line-code">    <span class="va">total_chars</span> <span class="op">=</span> <span class="bi">sum</span>(<span class="fn">len</span>(<span class="va">v</span>) <span class="kw">for</span> <span class="va">v</span> <span class="kw">in</span> <span class="va">results</span>.<span class="fn">values</span>())</td><td class="line-explain">generator expression בתוך sum() — עובר על כל הערכים ב-dict, מחשב len של כל string, מסכם. סה"כ chars לstats.</td></tr>
+            <tr><td class="line-num">279</td><td class="line-code">    <span class="kw">return</span> <span class="va">results</span></td><td class="line-explain">מחזיר dict שלם. main.py יעביר אותו ל-run_pipeline() → format_scraped_data() → Claude.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box green">
+        <h4>sum() with a generator — aggregating across a dict</h4>
+        <pre style="background:var(--bg); padding:10px 14px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12px; margin:10px 0; line-height:1.9;">total_chars = sum(len(v) for v in results.values())</pre>
+        <p>Break it down piece by piece:</p>
+        <ul>
+          <li><code>results.values()</code> — gives you all the scraped text strings (not the URL keys, just the values)</li>
+          <li><code>len(v)</code> — gets the character count of each string</li>
+          <li><code>for v in ...</code> — the generator expression iterates through each value</li>
+          <li><code>sum(...)</code> — adds all those character counts together</li>
+        </ul>
+        <p>The long version: <code>total = 0; for v in results.values(): total += len(v)</code>. The generator inside <code>sum()</code> collapses that into one line. This is the same pattern as <code>any()</code> — Python built-ins like <code>sum()</code>, <code>max()</code>, <code>min()</code>, <code>any()</code>, <code>all()</code> all accept generators directly.</p>
+      </div>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /scraper.py -->
+
+  <div class="flow-arrow">↓ נתונים סרוקים עוברים ל-llm.py ↓</div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- LLM.PY -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="file-section" id="llm-py">
+    <div class="file-header llm-py">
+      <div class="file-icon">🤖</div>
+      <div class="file-header-info">
+        <h2>llm.py</h2>
+        <p>כל שיחות Claude API — חילוץ נתונים, יצירת client card, welcome message, אתר, ומיניסייט.</p>
+      </div>
+    </div>
+
+    <div id="call-claude">
+      <div class="func-divider">
+        <div class="func-name">Imports &amp; Setup</div>
+        <hr>
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>llm.py — lines 1-13</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">7</td><td class="line-code"><span class="kw">from</span> <span class="va">anthropic</span> <span class="kw">import</span> <span class="fn">Anthropic</span></td><td class="line-explain">הספרייה הרשמית של Anthropic ל-Python.</td></tr>
+            <tr><td class="line-num">8</td><td class="line-code"><span class="kw">from</span> <span class="va">dotenv</span> <span class="kw">import</span> <span class="fn">load_dotenv</span></td><td class="line-explain">טוען קובץ .env לתוך environment variables. כך לא כותבים API key ישיר בקוד.</td></tr>
+            <tr><td class="line-num">10</td><td class="line-code"><span class="fn">load_dotenv</span>()</td><td class="line-explain good">קורא .env ומכניס ANTHROPIC_API_KEY לסביבה. חייב לרוץ לפני Anthropic().</td></tr>
+            <tr><td class="line-num">12</td><td class="line-code"><span class="va">client</span> <span class="op">=</span> <span class="fn">Anthropic</span>(api_key=<span class="bi">os</span>.<span class="fn">getenv</span>(<span class="str">"ANTHROPIC_API_KEY"</span>))</td><td class="line-explain important">יוצר client instance אחד שמשמש את כל הפונקציות. os.getenv() קורא את ה-env var.</td></tr>
+            <tr><td class="line-num">13</td><td class="line-code"><span class="va">MODEL</span> <span class="op">=</span> <span class="str">"claude-sonnet-4-20250514"</span></td><td class="line-explain key">const אחת לשינוי מודל — אם רוצים לעלות לOpus או לרדת לHaiku, משנים כאן בלבד.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box orange">
+        <h4>.env files and environment variables — keeping secrets out of code</h4>
+        <p>The API key must never be written directly in the code. If you push code to GitHub with a hardcoded key, anyone can find it and use your account.</p>
+        <p>The solution is a <strong>.env file</strong> — a plain text file that sits next to your code but is listed in <code>.gitignore</code> so it never gets committed:</p>
+        <pre style="background:var(--bg); padding:10px 14px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12px; margin:10px 0; line-height:1.9;"><span style="color:#484f58"># .env file (never committed to git)</span>
+ANTHROPIC_API_KEY=sk-ant-...</pre>
+        <p><code>load_dotenv()</code> reads that file and loads its contents into the process's environment variables. Then <code>os.getenv("ANTHROPIC_API_KEY")</code> retrieves the value at runtime. The key never appears in the code itself — only in the local file on your machine.</p>
+      </div>
+          </table>
+        </div>
+      </div>
+
+      <div class="func-divider">
+        <div class="func-name">call_claude() — הפונקציה הבסיסית</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        A thin wrapper around the Anthropic API. Every other function in llm.py calls this one — it's the single place in the entire project where an actual API request is sent to Claude. Takes a system prompt, a user prompt, and a token limit, sends them to Claude, and returns Claude's response as a plain string. Nothing else in the project talks to the API directly.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>llm.py — lines 16-24</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">16</td><td class="line-code"><span class="kw">def</span> <span class="fn">call_claude</span>(system_prompt, user_prompt, max_tokens=<span class="num">4096</span>):</td><td class="line-explain">wrapper פשוט לכל קריאת API. כל שאר הפונקציות קוראות לזה.</td></tr>
+            <tr><td class="line-num">18</td><td class="line-code">    <span class="va">response</span> <span class="op">=</span> <span class="va">client</span>.<span class="va">messages</span>.<span class="fn">create</span>(</td><td class="line-explain key">messages.create = ה-endpoint הראשי של Claude API.</td></tr>
+            <tr><td class="line-num">19</td><td class="line-code">        model=<span class="va">MODEL</span>,</td><td class="line-explain">באיזה מודל להשתמש.</td></tr>
+            <tr><td class="line-num">20</td><td class="line-code">        max_tokens=<span class="va">max_tokens</span>,</td><td class="line-explain warn">מגביל אורך תשובה. Generation עולה לפי tokens — 8192 לHTML, 2048 ל-welcome message.</td></tr>
+            <tr><td class="line-num">21</td><td class="line-code">        system=<span class="va">system_prompt</span>,</td><td class="line-explain important">System prompt = "אופי" ו"תפקיד" של Claude. קבוע לכל הקריאה — לא נראה בhistory.</td></tr>
+            <tr><td class="line-num">22</td><td class="line-code">        messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: user_prompt}],</td><td class="line-explain key">list של messages. כאן message אחד — user. בפרויקטים מורכבים יש גם "assistant" בhistory.</td></tr>
+            <tr><td class="line-num">24</td><td class="line-code">    <span class="kw">return</span> <span class="va">response</span>.<span class="va">content</span>[<span class="num">0</span>].<span class="va">text</span></td><td class="line-explain">Claude מחזיר list של content blocks. [0].text = הטקסט הראשון (תמיד יש אחד).</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box purple">
+        <h4>מבנה בסיסי של Claude API</h4>
+        <ul>
+          <li><strong>system</strong> — מגדיר "מי" Claude בקריאה הזאת (data extractor, web designer, customer success rep)</li>
+          <li><strong>messages</strong> — ההיסטוריה. כאן message בודד, אבל יכול להיות שיחה שלמה</li>
+          <li><strong>max_tokens</strong> — קריטי: אם HTML גדול מ-max_tokens, הוא ייחתך באמצע</li>
+          <li><strong>response.content[0].text</strong> — זה האינדקס הראשון כי Claude יכול להחזיר tool calls + text ביחד</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="extract-card">
+      <div class="func-divider">
+        <div class="func-name">extract_client_card()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        The first Claude call in the pipeline. Dumps all the raw scraped text at Claude and asks it to pull out structured business information — name, phone, services, areas, brands, reviews, etc. — and return it as a clean JSON object. This JSON becomes the single source of truth that every other generation function uses. Think of it as the "understanding" step: messy text in, structured data out.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>llm.py — lines 27-65</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">27</td><td class="line-code"><span class="kw">def</span> <span class="fn">extract_client_card</span>(scraped_text):</td><td class="line-explain">הפונקציה הראשונה שקוראת ל-Claude. מקבל blob טקסט גולמי, מחזיר JSON מובנה. <span class="fb-ret">→ מחזיר: JSON string</span></td></tr>
+            <tr><td class="line-num">29</td><td class="line-code">    <span class="va">system</span> <span class="op">=</span> <span class="str">"""You are a data extraction assistant for Zap Group..."""</span></td><td class="line-explain key">system prompt קצר — מגדיר "מי" Claude: data extraction assistant, לא web designer או customer service. זה משנה את הטון והסגנון של התשובה.</td></tr>
+            <tr><td class="line-num">31</td><td class="line-code">    <span class="str">Return ONLY valid JSON — no markdown, no explanation.</span></td><td class="line-explain important">הוראה קריטית! בלי "ONLY valid JSON" — Claude מוסיף ` ```json ` בהתחלה. זה שובר את json.loads() שיבוא אחר כך. ה-"ONLY" הוא prompt engineering להגביל את Claude.</td></tr>
+            <tr><td class="line-num">33</td><td class="line-code">    <span class="va">prompt</span> <span class="op">=</span> <span class="str">f"""Extract all business information from the following scraped data...</span></td><td class="line-explain">user prompt מתחיל עם הבקשה. f-string כדי שנוכל להכניס את scraped_text בסוף.</td></tr>
+            <tr><td class="line-num">35</td><td class="line-code">    <span class="str">{{"business_name": "Hebrew business name", "phone": "main phone number", ...}}</span></td><td class="line-explain">ה-schema בתוך ה-prompt! Claude מקבל את כל שמות השדות ומה צריך בכל אחד. <code>{{</code> ב-f-string = { ליטרל (כי {} רגיל = מקום placeholder).</td></tr>
+            <tr><td class="line-num">58</td><td class="line-code">    <span class="str">SCRAPED DATA:<br>{scraped_text}</span></td><td class="line-explain">המשתנה scraped_text מוכנס כאן. Claude מקבל את כל הטקסט הגולמי מהסריקה ומבקש לחלץ ממנו את ה-JSON.</td></tr>
+            <tr><td class="line-num">61</td><td class="line-code">    <span class="va">result</span> <span class="op">=</span> <span class="fn">call_claude</span>(system, prompt, max_tokens=<span class="num">4096</span>)</td><td class="line-explain"><span class="fb fb-llm">llm.py → call_claude()</span> שולח את ה-system + user prompt ל-Claude API. 4096 tokens מספיקים ל-JSON מבנה. <span class="fb-ret">→ מחזיר: string (JSON אידיאלית)</span></td></tr>
+            <tr><td class="line-num">62</td><td class="line-code">    <span class="kw">if</span> <span class="va">result</span>.<span class="fn">startswith</span>(<span class="str">"```"</span>):</td><td class="line-explain warn">defensive check — Claude לפעמים מוסיף ` ```json\n{...}\n``` ` בכל זאת. startswith בודק אם מתחיל ב-backticks.</td></tr>
+            <tr><td class="line-num">63</td><td class="line-code">        <span class="va">result</span> <span class="op">=</span> <span class="va">result</span>.<span class="fn">split</span>(<span class="str">"\n"</span>, <span class="num">1</span>)[<span class="num">1</span>].<span class="fn">rsplit</span>(<span class="str">"```"</span>, <span class="num">1</span>)[<span class="num">0</span>]</td><td class="line-explain">שתי חלוקות: split("\n", 1)[1] = חותך שורה ראשונה (` ```json`), [1] = מה שאחריה. rsplit("```", 1)[0] = חותך ` ``` ` מהסוף, [0] = מה שלפניה. תוצאה: JSON נקי.</td></tr>
+            <tr><td class="line-num">65</td><td class="line-code">    <span class="kw">return</span> <span class="va">result</span></td><td class="line-explain">מחזיר JSON string. run_pipeline שומר אותו ל-client_card.json ומעביר לכל שאר הפונקציות.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box orange">
+        <h4>How the markdown stripping works — split + rsplit</h4>
+        <p>Claude sometimes wraps its response in markdown code fences even when told not to:<br>
+        <code>```json<br>{"business_name": ...}<br>```</code></p>
+        <p>The fix is a two-step strip:</p>
+        <ul>
+          <li><code>result.split("\n", 1)</code> — splits on the FIRST newline only. The <strong>second argument</strong> <code>1</code> means "max 1 split". Result: <code>["```json", '{"business_name"...}```']</code></li>
+          <li><code>[1]</code> — takes the second part (everything after the first line, i.e. the actual JSON + closing fence)</li>
+          <li><code>.rsplit("```", 1)</code> — splits from the RIGHT, at the last occurrence of <code>```</code>. Result: <code>['{"business_name"...}', '']</code></li>
+          <li><code>[0]</code> — takes the first part (the clean JSON, no trailing fence)</li>
+        </ul>
+        <p>Why <code>rsplit</code> instead of <code>split</code> for the second step? Because the JSON itself could contain backticks — splitting from the right guarantees we only cut the final closing fence.</p>
+      </div>
+
+      <div class="func-divider">
+        <div class="func-name">generate_welcome_message()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        Generates the personalized onboarding message that gets sent to the client. Uses the structured JSON to reference their specific business — mentioning their actual services, their name, their location — so it doesn't feel like a template. Includes placeholder links for the draft website and minisite. Deliberately called last in the pipeline so those drafts already exist when the message is sent.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>llm.py — lines 92-114</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">92</td><td class="line-code"><span class="kw">def</span> <span class="fn">generate_welcome_message</span>(client_card_json):</td><td class="line-explain">מקבל JSON, מחזיר welcome message בעברית.</td></tr>
+            <tr><td class="line-num">94-96</td><td class="line-code">    <span class="va">system</span> <span class="op">=</span> <span class="str">"""You are a friendly customer success representative...<br>Write a warm, professional welcome message in Hebrew."""</span></td><td class="line-explain">system prompt קצר — מגדיר טון ושפה.</td></tr>
+            <tr class="highlighted"><td class="line-num">106</td><td class="line-code">    <span class="str">"6. Ask them to confirm key details — phrase it as questions TO the client: 'האם המספר שלך הוא X?' not 'פרטי הטלפון: X'. Their phone number is their number, not ours"</span></td><td class="line-explain important">⚠️ זו התיקון לבאג! בלי זה Claude כתב את הטלפון של יגאל כאילו הוא של זאפ.</td></tr>
+            <tr><td class="line-num">109</td><td class="line-code">    <span class="str">"Keep it concise — no more than 15 lines."</span></td><td class="line-explain">הגבלה אורך בתוך ה-prompt — Claude מציית לזה בדרך כלל.</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="design-prompt">
+      <div class="func-divider">
+        <div class="func-name">DESIGN_SYSTEM_PROMPT — קבוע עיצוב</div>
+        <hr>
+      </div>
+
+      <div class="explain-box yellow">
+        <h4>למה DESIGN_SYSTEM_PROMPT קיים?</h4>
+        <p>זהו ה-"system prompt" שמשמש ליצירת כל עמודי ה-website ו-minisite. במקום לחזור על כל ה-design guidelines בכל קריאה, הגדרנו אותם <strong>פעם אחת כ-constant</strong>. הוא מכיל את עקרונות ה-<code>/frontend-design</code> skill שהוזרמו לפרויקט.</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>llm.py — lines 117-135 (DESIGN_SYSTEM_PROMPT)</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">117</td><td class="line-code"><span class="va">DESIGN_SYSTEM_PROMPT</span> <span class="op">=</span> <span class="str">"""You are an elite web designer...</span></td><td class="line-explain key">UPPERCASE שם = convention ב-Python לconstants. לא כפוי על ידי Python, סכמה ויזואלית.</td></tr>
+            <tr><td class="line-num">121</td><td class="line-code">    <span class="str">- Typography: Use Google Fonts... NEVER use generic fonts like Arial, Inter, Roboto</span></td><td class="line-explain important">prompt engineering: הוראות שליליות ("NEVER") עובדות טוב יותר מהוראות חיוביות בלבד.</td></tr>
+            <tr><td class="line-num">123</td><td class="line-code">    <span class="str">- Color: Commit to a cohesive palette using CSS variables...</span></td><td class="line-explain">אנחנו מכוונים Claude לכתוב CSS variables — לא hardcoded colors. זה design system thinking.</td></tr>
+            <tr><td class="line-num">129</td><td class="line-code">    <span class="str">- Every page must be a COMPLETE standalone HTML file with all CSS inline in a &lt;style&gt; tag</span></td><td class="line-explain warn">CRITICAL rule — בלי CSS inline, הדפים לא יעבדו כשפתוחים ישירות (אין server, אין CSS file).</td></tr>
+            <tr><td class="line-num">130</td><td class="line-code">    <span class="str">- RTL direction (dir="rtl" lang="he")</span></td><td class="line-explain good">חובה לעברית. בלי זה, הטקסט מימין-לשמאל ייראה עם alignment שגוי.</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="generate-website">
+      <div class="func-divider">
+        <div class="func-name">generate_draft_website()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        Generates a complete 5-page website as standalone HTML files. Makes 5 separate Claude API calls — one per page — each with a different description of what that page should contain. Uses a shared design system prompt so all pages look consistent. Passes real client data and real image URLs to Claude so the output uses actual content, not placeholders. Returns a dict of filename → HTML content.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>llm.py — lines 148-203</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">148</td><td class="line-code"><span class="kw">def</span> <span class="fn">generate_draft_website</span>(client_card_json, images=<span class="kw2">None</span>):</td><td class="line-explain">מריץ 5 קריאות Claude נפרדות — אחת לכל עמוד. <span class="fb-ret">→ מחזיר: dict {filename → html}</span></td></tr>
+            <tr><td class="line-num">149</td><td class="line-code">    <span class="va">pages</span> <span class="op">=</span> {}</td><td class="line-explain">dict ריק שיצבור את 5 ה-HTMLים. key = שם קובץ, value = תוכן HTML.</td></tr>
+            <tr><td class="line-num">150</td><td class="line-code">    <span class="va">images_block</span> <span class="op">=</span> <span class="fn">_format_images</span>(images <span class="kw">or</span> [])</td><td class="line-explain"><span class="fb fb-llm">llm.py → _format_images()</span> ממיר list of {url,alt} לטקסט מוכן לprompt. <code>images or []</code> = אם images=None → [] (מונע TypeError). <span class="fb-ret">→ מחזיר: string (ריק אם אין תמונות)</span></td></tr>
+            <tr><td class="line-num">152</td><td class="line-code">    <span class="va">page_specs</span> <span class="op">=</span> {</td><td class="line-explain important">dict שמגדיר מה כל עמוד צריך להכיל. הmפתח = שם קובץ ה-HTML, הערך = תיאור מפורט לClaude. Claude ייצר כל עמוד לפי התיאור + client data.</td></tr>
+            <tr><td class="line-num">153</td><td class="line-code">        <span class="str">"index.html"</span>: <span class="str">"""Homepage — hero section, selling points, testimonial..."""</span>,</td><td class="line-explain">spec לדף הבית. Claude יקרא זאת ויבנה עמוד ספציפי לפי זה.</td></tr>
+            <tr><td class="line-num">158</td><td class="line-code">        <span class="str">"services.html"</span>: <span class="str">"""Services page — each service as card..."""</span>,</td><td class="line-explain">spec לעמוד שירותים.</td></tr>
+            <tr><td class="line-num">164</td><td class="line-code">        <span class="str">"about.html"</span>: <span class="str">"""About page — years experience, brands..."""</span>,</td><td class="line-explain">spec לעמוד אודות.</td></tr>
+            <tr><td class="line-num">170</td><td class="line-code">        <span class="str">"areas.html"</span>: <span class="str">"""Service areas page — geographic coverage..."""</span>,</td><td class="line-explain">spec לעמוד אזורי שירות.</td></tr>
+            <tr><td class="line-num">175</td><td class="line-code">        <span class="str">"contact.html"</span>: <span class="str">"""Contact page — phone large, address, form..."""</span>,</td><td class="line-explain">spec לעמוד יצירת קשר.</td></tr>
+            <tr class="highlighted"><td class="line-num">186</td><td class="line-code">    <span class="kw">for</span> <span class="va">filename</span>, <span class="va">description</span> <span class="kw">in</span> <span class="va">page_specs</span>.<span class="fn">items</span>():</td><td class="line-explain key">הלולאה המרכזית — רצה 5 פעמים. בכל איטרציה: filename = "index.html" ו-description = ה-spec של אותו עמוד.</td></tr>
+            <tr><td class="line-num">187</td><td class="line-code">        <span class="va">prompt</span> <span class="op">=</span> <span class="str">f"""Create this page for a business website:<br><br>{description}<br><br>Use the client data below...<br>{images_block}<br>Output ONLY the complete HTML file, no explanation.<br><br>CLIENT DATA:<br>{client_card_json}"""</span></td><td class="line-explain">f-string שמחבר: תיאור העמוד הספציפי + בלוק תמונות (אם יש) + כל נתוני הלקוח ב-JSON. Claude מקבל את הכל יחד.</td></tr>
+            <tr><td class="line-num">198</td><td class="line-code">        <span class="va">html</span> <span class="op">=</span> <span class="fn">call_claude</span>(<span class="va">DESIGN_SYSTEM_PROMPT</span>, prompt, max_tokens=<span class="num">8192</span>)</td><td class="line-explain"><span class="fb fb-llm">llm.py → call_claude()</span> קריאת API. max_tokens=8192 כי HTML מלא עם CSS inline יכול להיות גדול מאוד. DESIGN_SYSTEM_PROMPT כ-system (הנחיות עיצוב). <span class="fb-ret">→ מחזיר: HTML string</span></td></tr>
+            <tr><td class="line-num">199</td><td class="line-code">        <span class="kw">if</span> <span class="va">html</span>.<span class="fn">startswith</span>(<span class="str">"```"</span>):</td><td class="line-explain warn">Claude לפעמים מכניס markdown code fence בכל זאת: ` ```html\n&lt;!DOCTYPE html&gt;... ``` `. הבדיקה מזהה זאת.</td></tr>
+            <tr><td class="line-num">200</td><td class="line-code">            <span class="va">html</span> <span class="op">=</span> <span class="va">html</span>.<span class="fn">split</span>(<span class="str">"\n"</span>, <span class="num">1</span>)[<span class="num">1</span>].<span class="fn">rsplit</span>(<span class="str">"```"</span>, <span class="num">1</span>)[<span class="num">0</span>]</td><td class="line-explain">split("\n", 1)[1] = חותך את השורה הראשונה (` ```html`) ולוקח מה שאחריה. rsplit("```", 1)[0] = חותך ` ``` ` מהסוף. תוצאה: HTML נקי ללא wrapping.</td></tr>
+            <tr><td class="line-num">201</td><td class="line-code">        <span class="va">pages</span>[<span class="va">filename</span>] <span class="op">=</span> html</td><td class="line-explain good">שומר ב-dict. pages["index.html"] = html content. אחרי הלולאה, pages מכיל 5 key-value pairs.</td></tr>
+            <tr><td class="line-num">203</td><td class="line-code">    <span class="kw">return</span> <span class="va">pages</span></td><td class="line-explain">מחזיר dict עם 5 עמודים. main.py ילולאה עליהם ויכתוב כל אחד לקובץ.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box blue">
+        <h4>The "or []" default pattern — Python's falsy shortcut</h4>
+        <p><code>images or []</code> is Python's idiomatic way to handle optional parameters that default to <code>None</code>.</p>
+        <p><strong>Why not just use <code>def f(images=[])</code>?</strong> — Mutable default arguments in Python are a famous gotcha: the <code>[]</code> is created once when the function is defined, not each time it's called. If you append to it, the next call sees the modified list. Using <code>None</code> + <code>or []</code> is the safe pattern.</p>
+        <ul>
+          <li>If <code>images</code> is <code>None</code> → <code>None or []</code> → <code>[]</code> (because None is falsy)</li>
+          <li>If <code>images</code> is an empty list → <code>[] or []</code> → <code>[]</code> (empty list is also falsy)</li>
+          <li>If <code>images</code> is a real list → <code>[img1, img2] or []</code> → <code>[img1, img2]</code> (truthy, short-circuits)</li>
+        </ul>
+        <p>You'll see this pattern everywhere in Python. Equivalent to: <code>images if images is not None else []</code></p>
+      </div>
+
+      <div class="func-divider">
+        <div class="func-name">_format_images()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        A small helper that converts the list of image objects into a formatted text block that Claude can read inside a prompt. Claude can't receive actual image files — it can only read the URLs as text. This function formats them as a numbered list of <code>&lt;img&gt;</code> tags so Claude knows exactly how to use them in the HTML it generates.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>llm.py — lines 138-145</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">138</td><td class="line-code"><span class="kw">def</span> <span class="fn">_format_images</span>(images):</td><td class="line-explain">ממיר list של dicts לטקסט מוכן-לprompt.</td></tr>
+            <tr><td class="line-num">139</td><td class="line-code">    <span class="kw">if not</span> <span class="va">images</span>:<br>        <span class="kw">return</span> <span class="str">""</span></td><td class="line-explain">אם אין תמונות — מחזיר string ריק. Claude ייצור גלריה ריקה.</td></tr>
+            <tr><td class="line-num">141-144</td><td class="line-code">    <span class="va">lines</span> <span class="op">=</span> [<span class="str">"REAL IMAGES FROM CLIENT'S SITE..."</span>]<br>    <span class="kw">for</span> <span class="va">i, img</span> <span class="kw">in</span> <span class="fn">enumerate</span>(images, <span class="num">1</span>):<br>        <span class="va">lines</span>.<span class="fn">append</span>(<span class="str">f'  {i}. &lt;img src="{img["url"]}" alt="{img["alt"]}"&gt;'</span>)</td><td class="line-explain good"><code>enumerate(images, 1)</code> = loop עם counter שמתחיל מ-1. מייצר רשימה ממוספרת לprompt.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box cyan">
+        <h4>enumerate(iterable, start=1) — the start parameter</h4>
+        <p><code>enumerate()</code> adds an automatic counter to a loop. By default it starts at 0:</p>
+        <ul>
+          <li><code>for i, img in enumerate(images)</code> → i = 0, 1, 2, 3...</li>
+          <li><code>for i, img in enumerate(images, 1)</code> → i = 1, 2, 3, 4... (human-readable)</li>
+        </ul>
+        <p>The second argument is the <strong>start value</strong>. We pass <code>1</code> because the numbered list goes into a prompt for Claude — "1. &lt;img ...&gt;" reads more naturally than "0. &lt;img ...&gt;".</p>
+        <p>Without enumerate, you'd need a manual counter: <code>i = 1</code> before the loop and <code>i += 1</code> at the end — enumerate makes this one clean line.</p>
+      </div>
+    </div>
+
+    <div id="generate-minisite">
+      <div class="func-divider">
+        <div class="func-name">generate_draft_minisite()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        Same idea as the website generator but for the Dapei Zahav listing page. One Claude call, one HTML file. Uses a completely different system prompt that instructs Claude to match the Dapei Zahav visual style — gold/yellow colors, directory listing layout, structured sections like "About", "Gallery", "Reviews", "Hours". This is the client's new presence on d.co.il.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>llm.py — lines 207-249</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">207</td><td class="line-code"><span class="kw">def</span> <span class="fn">generate_draft_minisite</span>(client_card_json, images=<span class="kw2">None</span>):</td><td class="line-explain">גרסה לdפי זהב — system prompt שונה, HTML אחד (לא 5 עמודים).</td></tr>
+            <tr><td class="line-num">210-223</td><td class="line-code">    <span class="va">system</span> <span class="op">=</span> <span class="str">"""You are an elite web designer creating a Dapei Zahav minisite...<br>Match Dapei Zahav's visual identity: yellow/gold (#FFD700, #FFC107)"""</span></td><td class="line-explain important">system prompt שונה לחלוטין! מכוון לעיצוב ספציפי של דפי זהב — צהוב/זהב, מבנה directory listing.</td></tr>
+            <tr><td class="line-num">225-243</td><td class="line-code">    <span class="va">prompt</span> <span class="op">=</span> <span class="str">f"""Create an HTML page simulating a Dapei Zahav listing...<br>6. "גלריה" (Gallery) — use the real client images...<br>Do NOT use placeholder boxes."""</span></td><td class="line-explain key">ה-"Do NOT use placeholder boxes" נוסף לאחר שגילינו שClaude יוצר gray boxes ריקים במקום גלריה אמיתית.</td></tr>
+            <tr><td class="line-num">246</td><td class="line-code">    <span class="va">html</span> <span class="op">=</span> <span class="fn">call_claude</span>(system, prompt, max_tokens=<span class="num">8192</span>)</td><td class="line-explain">API call אחד — HTML שלם עם כל הסקציות.</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div><!-- /llm.py -->
+
+  <div class="flow-arrow">↓ הכל מתועד ב-crm.py ↓</div>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <!-- CRM.PY -->
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <div class="file-section" id="crm-py">
+    <div class="file-header crm-py">
+      <div class="file-icon">💾</div>
+      <div class="file-header-info">
+        <h2>crm.py</h2>
+        <p>סימולציה של CRM logging — מייצר JSON entry שמייצג מה שהיה נשמר ב-Salesforce/HubSpot אמיתי.</p>
+      </div>
+    </div>
+
+    <div id="crm-log">
+      <div class="func-divider">
+        <div class="func-name orange">log_to_crm()</div>
+        <hr>
+      </div>
+
+      <div class="func-summary">
+        <div class="fs-label">What this function does</div>
+        Simulates writing a CRM entry. In a real product this would call a Salesforce or HubSpot API — here it writes a <code>crm_log.json</code> file with the same data a real CRM would store: a unique ID, timestamp, the client's structured data, a status of "onboarding_initiated", and an audit trail of every action taken during this run. The logic is identical to what a real integration would do — only the destination is different.
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+          <span>crm.py — lines 1-66 (כל הקובץ)</span>
+        </div>
+        <div class="code-content">
+          <table class="code-table">
+            <tr><td class="line-num">7</td><td class="line-code"><span class="kw">import</span> <span class="va">json</span></td><td class="line-explain">לכתיבת JSON לדיסק.</td></tr>
+            <tr><td class="line-num">9</td><td class="line-code"><span class="kw">from</span> <span class="va">datetime</span> <span class="kw">import</span> <span class="fn">datetime</span></td><td class="line-explain">לtimestamps — "מתי" כל action קרה.</td></tr>
+            <tr><td class="line-num">11</td><td class="line-code"><span class="kw">def</span> <span class="fn">log_to_crm</span>(client_card, welcome_message, output_dir):</td><td class="line-explain">הפונקציה היחידה בקובץ. מקבל 3 פרמטרים.</td></tr>
+            <tr><td class="line-num">17</td><td class="line-code">        <span class="str">"crm_id"</span>: <span class="str">f"ZAP-{datetime.now().strftime('%Y%m%d%H%M%S')}"</span>,</td><td class="line-explain key">ID ייחודי מבוסס timestamp. strftime מפרמט datetime. לדוגמה: "ZAP-20250419143022".</td></tr>
+            <tr><td class="line-num">18</td><td class="line-code">        <span class="str">"created_at"</span>: <span class="fn">datetime</span>.<span class="fn">now</span>().<span class="fn">isoformat</span>(),</td><td class="line-explain">isoformat() = "2025-04-19T14:30:22.123456" — פורמט ISO סטנדרטי לתאריך שCRMs מבינים.</td></tr>
+            <tr><td class="line-num">19</td><td class="line-code">        <span class="str">"status"</span>: <span class="str">"onboarding_initiated"</span>,</td><td class="line-explain important">status שדה — ב-CRM אמיתי יהיה enum עם ערכים כמו "active", "completed", "churned".</td></tr>
+            <tr><td class="line-num">20</td><td class="line-code">        <span class="str">"client_data"</span>: <span class="fn">json</span>.<span class="fn">loads</span>(client_card) <span class="kw">if</span> <span class="bi">isinstance</span>(client_card, <span class="bi">str</span>) <span class="kw">else</span> client_card,</td><td class="line-explain key">inline ternary: אם client_card הוא string → parse ל-dict. אם כבר dict → השתמש ישירות.</td></tr>
+            <tr><td class="line-num">21-48</td><td class="line-code">        <span class="str">"actions_taken"</span>: [<br>            {<span class="str">"action"</span>: <span class="str">"digital_assets_scanned"</span>, <span class="str">"timestamp"</span>: ...},<br>            {<span class="str">"action"</span>: <span class="str">"client_card_generated"</span>, ...},<br>            ...<br>        ],</td><td class="line-explain good">audit trail — list של כל הפעולות שבוצעו. ב-CRM אמיתי כל פעולה תיכתב בנפרד.</td></tr>
+            <tr><td class="line-num">49</td><td class="line-code">        <span class="str">"welcome_message_preview"</span>: welcome_message[:<span class="num">500</span>] <span class="op">+</span> <span class="str">"..."</span> <span class="kw">if</span> <span class="fn">len</span>(welcome_message) <span class="op">&gt;</span> <span class="num">500</span> <span class="kw">else</span> welcome_message,</td><td class="line-explain">slice [0:500] — רק preview קצר ב-CRM. אם המסר קצר מ-500 — הכל. ternary expression.</td></tr>
+            <tr><td class="line-num">59</td><td class="line-code">    <span class="va">path</span> <span class="op">=</span> <span class="bi">os</span>.<span class="fn">path</span>.<span class="fn">join</span>(output_dir, <span class="str">"crm_log.json"</span>)</td><td class="line-explain">os.path.join נכון ל-Windows גם — לא "output_dir + '/crm_log.json'".</td></tr>
+            <tr><td class="line-num">60-61</td><td class="line-code">    <span class="kw">with</span> <span class="bi">open</span>(path, <span class="str">"w"</span>, encoding=<span class="str">"utf-8"</span>) <span class="kw">as</span> <span class="va">f</span>:<br>        <span class="va">json</span>.<span class="fn">dump</span>(crm_entry, <span class="va">f</span>, ensure_ascii=<span class="kw2">False</span>, indent=<span class="num">2</span>)</td><td class="line-explain important"><code>ensure_ascii=False</code> = שמור עברית כפי שהיא, לא כ-\uXXXX. <code>indent=2</code> = JSON קריא.</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="explain-box purple">
+        <h4>Three crm.py patterns worth knowing</h4>
+
+        <p><strong>1. isinstance(client_card, str) — defensive type check</strong></p>
+        <p><code>json.loads(client_card) if isinstance(client_card, str) else client_card</code></p>
+        <p><code>log_to_crm()</code> can receive client_card as either a JSON <em>string</em> (from the file we saved) or as a Python <em>dict</em> (if called directly with already-parsed data). <code>isinstance(x, str)</code> returns True if x is a string. The inline ternary <code>A if condition else B</code> is Python's single-line if/else — same as:</p>
+        <pre style="background:var(--surface);padding:8px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;margin:8px 0;">if isinstance(client_card, str):
+    client_data = json.loads(client_card)
+else:
+    client_data = client_card</pre>
+
+        <p><strong>2. strftime('%Y%m%d%H%M%S') vs isoformat()</strong></p>
+        <ul>
+          <li><code>strftime('%Y%m%d%H%M%S')</code> → <code>"20260425132346"</code> — custom format, no separators, safe for IDs</li>
+          <li><code>%Y</code>=4-digit year, <code>%m</code>=month, <code>%d</code>=day, <code>%H</code>=hour (24h), <code>%M</code>=minute, <code>%S</code>=second</li>
+          <li><code>isoformat()</code> → <code>"2026-04-25T13:23:46.123456"</code> — ISO 8601 standard, what databases and APIs expect</li>
+          <li>We use <em>both</em>: strftime for the CRM ID (must be a clean string), isoformat for the timestamp field (must be parseable by any system)</li>
+        </ul>
+
+        <p><strong>3. json.dump parameters — ensure_ascii and indent</strong></p>
+        <ul>
+          <li><code>ensure_ascii=False</code> — by default, json.dump converts non-ASCII characters to <code>\uXXXX</code> escape sequences. Setting False keeps Hebrew as-is: <code>"יגאל מזגנים"</code> not <code>"\u05d9\u05d2\u05d0\u05dc..."</code></li>
+          <li><code>indent=2</code> — pretty-prints with 2-space indentation. Without it, the JSON is one long line. With it, it's human-readable in any text editor</li>
+          <li>The file is opened with <code>encoding="utf-8"</code> to match — otherwise the Hebrew would fail to write</li>
+        </ul>
+      </div>
+
+      <div class="explain-box orange">
+        <h4>מה ב-CRM אמיתי?</h4>
+        <ul>
+          <li>במקום <code>open(path, "w")</code> היה <code>requests.post("https://api.salesforce.com/...")</code></li>
+          <li>היינו צריכים OAuth token, field mapping לפי הסכמה של Salesforce</li>
+          <li>הtrigger להפעיל את כל הפרויקט היה גם בא מ-CRM webhook (לא מ-CLI)</li>
+          <li>אבל הלוגיקה — מה לשמור, איזה status, איזה actions — זהה בדיוק</li>
+        </ul>
+      </div>
+    </div>
+  </div><!-- /crm.py -->
+
+  <!-- ── Final flow summary ── -->
+  <div class="explain-box cyan" style="margin-top: 48px; font-size: 15px;">
+    <h4>סיכום — סדר הזרימה המלא</h4>
+    <ol style="padding-right: 20px; line-height: 2.2;">
+      <li><strong>main.py → main()</strong> — argparse מחליט: discovery mode או URL ישיר?</li>
+      <li><strong>scraper.py → discover_assets() / scrape_client()</strong> — HTTP requests, BeautifulSoup, DuckDuckGo</li>
+      <li><strong>scraper.py → collect_images()</strong> — אוסף תמונות אמיתיות מה-domain</li>
+      <li><strong>main.py → run_pipeline()</strong> — מריץ את שאר השלבים בסדר:</li>
+      <li><strong>llm.py → extract_client_card()</strong> — Claude API → JSON מובנה</li>
+      <li><strong>llm.py → generate_client_card_hebrew()</strong> — Claude API → Markdown למפיק</li>
+      <li><strong>llm.py → generate_draft_website()</strong> — 5 × Claude API → 5 HTML עמודים</li>
+      <li><strong>llm.py → generate_draft_minisite()</strong> — 1 × Claude API → HTML דפי זהב</li>
+      <li><strong>llm.py → generate_welcome_message()</strong> — Claude API → הודעה בעברית (אחרי ה-website!)</li>
+      <li><strong>crm.py → log_to_crm()</strong> — JSON לדיסק (סימולציית CRM entry)</li>
+    </ol>
+  </div>
+
+  <div style="text-align:center; padding: 48px 0 24px; color: var(--muted); font-size: 13px;">
+    <a href="code-explainer.html" style="color: var(--blue); text-decoration: none;">← חזרה ל-Code Explainer (Overview)</a>
+    &nbsp;&nbsp;|&nbsp;&nbsp;
+    Zap Onboarding AI — Interview Prep
+  </div>
+
+</div><!-- /container -->
+</body>
+</html>

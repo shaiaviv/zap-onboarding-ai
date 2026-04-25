@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Zap Onboarding AI — Code Explainer</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #1a1a2e;
+      background: #f8f9fc;
+      padding: 40px 20px;
+    }
+
+    .page {
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 0 48px;
+    }
+
+    /* Cover */
+    .cover {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+      color: white;
+      border-radius: 16px;
+      padding: 60px 48px;
+      margin-bottom: 40px;
+    }
+    .cover .tag {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .cover h1 {
+      font-size: 38px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .cover h1 span { color: #4cc9f0; }
+    .cover p {
+      font-size: 16px;
+      color: rgba(255,255,255,0.7);
+      max-width: 500px;
+    }
+    .cover .meta {
+      margin-top: 32px;
+      display: flex;
+      gap: 24px;
+    }
+    .cover .meta-item {
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+    }
+    .cover .meta-item strong {
+      display: block;
+      color: white;
+      font-size: 14px;
+    }
+
+    /* Section headers */
+    .section {
+      background: white;
+      border-radius: 12px;
+      padding: 36px 40px;
+      margin-bottom: 24px;
+      border: 1px solid #e8eaf0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #4cc9f0;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid #f0f2f8;
+    }
+
+    h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin: 28px 0 10px;
+    }
+
+    h3:first-of-type { margin-top: 0; }
+
+    p { margin-bottom: 14px; color: #3a3a5c; }
+
+    /* File cards */
+    .file-card {
+      background: white;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      border: 1px solid #e8eaf0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      overflow: hidden;
+    }
+
+    .file-header {
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #f0f2f8;
+    }
+
+    .file-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .file-icon.blue   { background: #e8f4fd; }
+    .file-icon.purple { background: #f0e8fd; }
+    .file-icon.green  { background: #e8fdf0; }
+    .file-icon.orange { background: #fdf4e8; }
+
+    .file-name {
+      font-family: 'Fira Code', monospace;
+      font-size: 16px;
+      font-weight: 500;
+      color: #1a1a2e;
+    }
+    .file-tagline {
+      font-size: 13px;
+      color: #888;
+      margin-top: 2px;
+    }
+
+    .file-body { padding: 28px 32px; }
+    .file-body p { margin-bottom: 14px; color: #3a3a5c; }
+    .file-body h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin: 22px 0 8px;
+    }
+    .file-body h3:first-child { margin-top: 0; }
+
+    /* Code blocks */
+    pre {
+      background: #1a1a2e;
+      color: #a9b1d6;
+      border-radius: 8px;
+      padding: 18px 20px;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin: 14px 0;
+    }
+    .kw  { color: #bb9af7; }
+    .fn  { color: #7dcfff; }
+    .st  { color: #9ece6a; }
+    .cm  { color: #565f89; font-style: italic; }
+    .nu  { color: #ff9e64; }
+
+    /* Inline code */
+    code {
+      font-family: 'Fira Code', monospace;
+      background: #f0f2f8;
+      border: 1px solid #e0e4f0;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 13px;
+      color: #5a4fcf;
+    }
+
+    /* Step flow */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin: 20px 0;
+    }
+    .flow-step {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      padding: 16px 0;
+      border-bottom: 1px solid #f0f2f8;
+    }
+    .flow-step:last-child { border-bottom: none; }
+    .step-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #4361ee, #4cc9f0);
+      color: white;
+      font-weight: 700;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .step-content strong {
+      display: block;
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 4px;
+    }
+    .step-content span { font-size: 14px; color: #555; }
+
+    /* Function table */
+    .fn-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 14px;
+    }
+    .fn-table th {
+      text-align: left;
+      padding: 10px 14px;
+      background: #f5f6fa;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #666;
+      border-bottom: 2px solid #e8eaf0;
+    }
+    .fn-table td {
+      padding: 11px 14px;
+      border-bottom: 1px solid #f0f2f8;
+      color: #3a3a5c;
+      vertical-align: top;
+    }
+    .fn-table td:first-child {
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      color: #4361ee;
+      white-space: nowrap;
+    }
+    .fn-table tr:last-child td { border-bottom: none; }
+
+    /* Callout boxes */
+    .callout {
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      font-size: 14px;
+    }
+    .callout.blue {
+      background: #e8f4fd;
+      border-left: 4px solid #4cc9f0;
+      color: #1a4a6e;
+    }
+    .callout.yellow {
+      background: #fdf8e8;
+      border-left: 4px solid #f7c948;
+      color: #6e5a1a;
+    }
+    .callout.purple {
+      background: #f0e8fd;
+      border-left: 4px solid #7c3aed;
+      color: #3d1a6e;
+    }
+    .callout strong { font-weight: 600; }
+
+    /* Diagram */
+    .diagram {
+      background: #1a1a2e;
+      border-radius: 10px;
+      padding: 28px 32px;
+      margin: 20px 0;
+      color: #a9b1d6;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      line-height: 2;
+    }
+    .diagram .box {
+      display: inline-block;
+      background: rgba(76, 201, 240, 0.15);
+      border: 1px solid rgba(76, 201, 240, 0.4);
+      border-radius: 6px;
+      padding: 2px 12px;
+      color: #4cc9f0;
+      font-weight: 500;
+    }
+    .diagram .arrow { color: #565f89; }
+    .diagram .note { color: #565f89; font-style: italic; margin-left: 16px; }
+
+    /* Tech stack cards */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .tech-card {
+      border: 1px solid #e8eaf0;
+      border-radius: 10px;
+      padding: 18px 20px;
+      background: #fafbff;
+    }
+    .tech-card .tech-name {
+      font-family: 'Fira Code', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: #4361ee;
+      margin-bottom: 4px;
+    }
+    .tech-card .tech-role {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #aaa;
+      margin-bottom: 8px;
+    }
+    .tech-card p {
+      font-size: 13px;
+      color: #555;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* Code flow trace */
+    .trace {
+      background: #1a1a2e;
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin: 16px 0;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      line-height: 2;
+      color: #a9b1d6;
+    }
+    .trace .file { color: #7dcfff; font-weight: 600; }
+    .trace .fn-call { color: #bb9af7; }
+    .trace .ret { color: #9ece6a; }
+    .trace .indent1 { margin-left: 20px; }
+    .trace .indent2 { margin-left: 40px; }
+    .trace .indent3 { margin-left: 60px; }
+    .trace .comment { color: #565f89; font-style: italic; }
+
+    /* Real vs Prototype comparison */
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .compare-box {
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .compare-box.real {
+      background: #e8fdf0;
+      border: 1.5px solid #34d399;
+    }
+    .compare-box.proto {
+      background: #fdf4e8;
+      border: 1.5px solid #f59e0b;
+    }
+    .compare-box .compare-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .compare-box.real .compare-label { color: #059669; }
+    .compare-box.proto .compare-label { color: #d97706; }
+    .compare-box p { font-size: 13px; margin: 0; line-height: 1.6; }
+    .compare-box code { font-size: 12px; }
+
+    /* Two-column layout for side by side */
+    .side-by-side {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 16px 0;
+    }
+    .side-box {
+      background: #f5f6fa;
+      border-radius: 8px;
+      padding: 16px 18px;
+      font-size: 13px;
+      color: #3a3a5c;
+    }
+    .side-box strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #999;
+      margin-bottom: 8px;
+    }
+
+    /* Print */
+    @media print {
+      body { background: white; padding: 0; }
+      .section, .file-card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+      .cover { border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Cover -->
+  <div class="cover">
+    <div class="tag">Interview Prep</div>
+    <h1>Zap Onboarding <span>AI</span><br>Code Explainer</h1>
+    <p>A deep-dive into every file, function, and design decision in the pipeline — written so you can explain it confidently in an interview.</p>
+    <div style="margin: 24px 0 8px; display:flex; gap:12px; flex-wrap:wrap;">
+      <a href="code-walkthrough.html" style="display:inline-block; padding: 10px 22px; background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.35); border-radius: 8px; color: white; text-decoration: none; font-size: 14px; font-weight: 600;">
+        📖 Code Walkthrough — שורה אחר שורה →
+      </a>
+      <a href="llm-deep-dive.html" style="display:inline-block; padding: 10px 22px; background: rgba(165,180,252,0.15); border: 1.5px solid rgba(165,180,252,0.5); border-radius: 8px; color: #a5b4fc; text-decoration: none; font-size: 14px; font-weight: 600;">
+        🤖 llm.py Deep Dive →
+      </a>
+      <a href="full-code-dive.html" style="display:inline-block; padding: 10px 22px; background: rgba(63,185,80,0.1); border: 1.5px solid rgba(63,185,80,0.4); border-radius: 8px; color: #3fb950; text-decoration: none; font-size: 14px; font-weight: 600;">
+        📄 Full Code — All 4 Files →
+      </a>
+    </div>
+    <div class="meta">
+      <div class="meta-item"><strong>4 Python files</strong>Role in the system</div>
+      <div class="meta-item"><strong>6-step pipeline</strong>End-to-end flow</div>
+      <div class="meta-item"><strong>2 run modes</strong>Discovery & direct URL</div>
+    </div>
+  </div>
+
+  <!-- Tech Stack -->
+  <div class="section">
+    <div class="section-label">Technologies</div>
+    <h2>The Tech Stack — What We Use and Why</h2>
+    <p>Every library in this project was chosen for a specific reason. Here's what each one does and why we picked it over alternatives.</p>
+
+    <div class="tech-grid">
+
+      <div class="tech-card">
+        <div class="tech-role">HTTP Requests</div>
+        <div class="tech-name">requests</div>
+        <p>The standard Python library for making HTTP calls — essentially simulating a browser loading a webpage, but without rendering it. We use it to fetch every page we scrape. Simple, fast, and reliable for static sites.</p>
+      </div>
+
+      <div class="tech-card">
+        <div class="tech-role">HTML Parsing</div>
+        <div class="tech-name">BeautifulSoup4</div>
+        <p>Takes raw HTML (which is full of tags, scripts, and noise) and lets you navigate it like a tree. We use it to strip everything except readable text, and also to find all the <code>&lt;a&gt;</code> and <code>&lt;img&gt;</code> tags. Alternative would be regex — which breaks easily and is much harder to read.</p>
+      </div>
+
+      <div class="tech-card">
+        <div class="tech-role">Web Search</div>
+        <div class="tech-name">ddgs</div>
+        <p>DuckDuckGo Search — a free Python library that runs web searches without needing an API key. We use it in the discovery phase to find a client's URLs from just their name and phone. No account, no rate limits for moderate usage, works well with Hebrew queries.</p>
+      </div>
+
+      <div class="tech-card">
+        <div class="tech-role">AI / LLM</div>
+        <div class="tech-name">anthropic</div>
+        <p>The official Python SDK for the Claude API. We use it to send prompts and receive responses. The model we use is <code>claude-sonnet-4-20250514</code> — a strong balance of intelligence and speed. Alternatives like OpenAI's GPT-4 or Google Gemini could work, but Claude handles Hebrew particularly well.</p>
+      </div>
+
+      <div class="tech-card">
+        <div class="tech-role">Environment Variables</div>
+        <div class="tech-name">python-dotenv</div>
+        <p>Loads the <code>.env</code> file into the environment so the API key never appears in the code. This is standard practice — you never commit credentials to GitHub. The <code>.env</code> file is in <code>.gitignore</code>.</p>
+      </div>
+
+      <div class="tech-card">
+        <div class="tech-role">Hosting (Demo)</div>
+        <div class="tech-name">Vercel</div>
+        <p>Deploys static HTML files to the internet instantly with a clean URL. We used it to host the generated website and minisite so the interviewer can click real links. Free tier, deploys in under 10 seconds with the CLI.</p>
+      </div>
+
+    </div>
+
+    <h3 style="margin-top:24px;">What we deliberately did NOT use</h3>
+    <table class="fn-table">
+      <tr><th>Technology</th><th>Why we skipped it</th></tr>
+      <tr><td>Playwright / Selenium</td><td>Browser automation is overkill for static HTML sites. It's 60x slower and costs far more in compute. We only need raw text — no JavaScript rendering required.</td></tr>
+      <tr><td>LangChain</td><td>Adds abstraction and complexity without adding value for a linear pipeline. Direct API calls give you full control and are easier to debug.</td></tr>
+      <tr><td>SerpAPI / Google Search API</td><td>Paid services. DuckDuckGo's free library does the same job for this use case.</td></tr>
+      <tr><td>Database (SQLite, Postgres)</td><td>Overkill for a prototype. JSON files on disk are simpler, portable, and human-readable — perfect for showing an interviewer what the output looks like.</td></tr>
+      <tr><td>FastAPI / Flask</td><td>No web server needed — this is a command-line pipeline. Adding a web layer would complicate the demo without adding value.</td></tr>
+    </table>
+  </div>
+
+  <!-- CRM Trigger -->
+  <div class="section">
+    <div class="section-label">Starting Point</div>
+    <h2>The CRM Trigger — Where Everything Begins</h2>
+
+    <p>Before a single line of our code runs, something has to kick it off. In a real company that "something" is the CRM system. Understanding this is important because it explains <em>why</em> the pipeline takes the inputs it does.</p>
+
+    <h3>What is a CRM?</h3>
+    <p>CRM stands for Customer Relationship Management. It's a database where businesses store information about their clients — contact details, what they bought, when they called, notes from meetings. Companies like Zap would use a platform like <strong>Salesforce</strong>, <strong>HubSpot</strong>, or <strong>Pipedrive</strong>.</p>
+
+    <h3>What is a "trigger"?</h3>
+    <p>A trigger is an automated event. When something happens in the CRM — like a new purchase — the CRM can automatically fire a signal to another system saying "hey, something happened, go do something about it." That signal is called a <strong>webhook</strong>. It's essentially an HTTP POST request the CRM sends to your system with the relevant data.</p>
+
+    <div class="compare">
+      <div class="compare-box real">
+        <div class="compare-label">Real World</div>
+        <p>A client buys a package on Zap's website. The payment system notifies the CRM. The CRM fires a webhook — an HTTP POST to our pipeline's server — with a JSON body like:</p>
+        <pre style="margin-top:10px; font-size:11px; background:#0a2a1a; border-radius:6px; padding:12px;">{
+  "event": "new_purchase",
+  "client": {
+    "name": "יגאל מזגנים",
+    "phone": "072-3977065",
+    "location": "קריות",
+    "package": "website+minisite"
+  }
+}</pre>
+        <p style="margin-top:10px;">Our server receives this, extracts the fields, and starts the pipeline automatically. Zero human involvement.</p>
+      </div>
+      <div class="compare-box proto">
+        <div class="compare-label">Our Prototype</div>
+        <p>We don't have a real CRM or a server listening for webhooks. Instead, we simulate the trigger by typing the same information manually as command-line arguments:</p>
+        <pre style="margin-top:10px; font-size:11px; background:#2a1a0a; border-radius:6px; padding:12px;">python main.py \
+  --name "יגאל מזגנים" \
+  --phone "072-3977065" \
+  --location "קריות"</pre>
+        <p style="margin-top:10px;">The data is identical. Only the delivery mechanism is different — keyboard instead of HTTP.</p>
+      </div>
+    </div>
+
+    <h3>Where does the CRM appear in the code?</h3>
+    <p>The CRM is involved at <strong>two points</strong> in the pipeline — once at the start and once at the end. Many people only think of the end part (logging). The start is equally important:</p>
+
+    <div class="flow">
+      <div class="flow-step">
+        <div class="step-num" style="background: linear-gradient(135deg, #f59e0b, #ef4444);">IN</div>
+        <div class="step-content">
+          <strong>CRM as the trigger (start)</strong>
+          <span>The CRM fires the event that starts the whole process. It provides the client's name, phone, and location — the minimum information needed to find and identify the right business online. In our prototype, this is the <code>--name</code>, <code>--phone</code>, <code>--location</code> arguments in <code>main.py</code>.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num" style="background: linear-gradient(135deg, #059669, #34d399);">OUT</div>
+        <div class="step-content">
+          <strong>CRM as the destination (end)</strong>
+          <span>Once the pipeline finishes, everything gets logged back into the CRM under that client's record — the extracted client data, a timestamp of every action taken, and links to all the deliverables. This is what <code>crm.py</code> handles. In real life it would be an API call; in our prototype it writes a JSON file.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout blue" style="margin-top: 4px;">
+      <strong>One sentence summary:</strong> The CRM tells us a new client exists (trigger), we do all the work, then we report everything back to the CRM (log). Our code lives in the middle.
+    </div>
+  </div>
+
+  <!-- Big Picture -->
+  <div class="section">
+    <div class="section-label">Overview</div>
+    <h2>The Big Picture</h2>
+    <p>The system simulates what happens the moment a new client buys a Zap Group package. In real life, a human account manager would Google the business, read through their website, take notes, and write a welcome message — all manually. This pipeline replaces that entire process with one command.</p>
+    <p>There are <strong>4 Python files</strong>, each with a single clear responsibility. They are wired together by <code>main.py</code>, which runs them in sequence like an assembly line.</p>
+
+    <div class="diagram">
+      <div><span class="box">CRM trigger</span> <span class="arrow">→</span> name + phone + location</div>
+      <div style="margin-left:32px"><span class="arrow">↓</span></div>
+      <div><span class="box">scraper.py</span> <span class="arrow">→</span> find URLs → verify → scrape text + images</div>
+      <div style="margin-left:32px"><span class="arrow">↓</span></div>
+      <div><span class="box">llm.py</span> <span class="arrow">→</span> extract data → generate all content</div>
+      <div style="margin-left:32px"><span class="arrow">↓</span></div>
+      <div><span class="box">crm.py</span> <span class="arrow">→</span> log everything with timestamps</div>
+      <div style="margin-left:32px"><span class="arrow">↓</span></div>
+      <div><span class="box">output/</span> <span class="note">client_card.json, welcome_message.md, website/, minisite/</span></div>
+    </div>
+
+    <p>The key insight: the <strong>scraper</strong> collects raw information, the <strong>LLM</strong> understands and transforms it, and the <strong>CRM logger</strong> records everything. <code>main.py</code> just connects them in the right order.</p>
+  </div>
+
+  <!-- Pipeline Flow -->
+  <div class="section">
+    <div class="section-label">Workflow</div>
+    <h2>The 6-Step Pipeline</h2>
+
+    <div class="flow">
+      <div class="flow-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>Discover &amp; Scrape Digital Assets</strong>
+          <span>Searches DuckDuckGo for the client's web presence using their name, phone, and city. Each result is verified — the scraper visits the page and confirms the phone number actually appears in the text. Only verified pages are scraped. This prevents picking up a different business with the same name. Then it crawls every internal page of the verified sites and collects real image URLs.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>Extract Structured Client Card</strong>
+          <span>All scraped text (potentially 40,000+ characters) is sent to Claude with a prompt asking it to extract structured JSON — business name, phone, email, services list, brands, service areas, testimonials, and notes for the producer. A second call converts this JSON into a readable Hebrew summary document.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>Draft 5-Page Website</strong>
+          <span>Claude generates 5 complete HTML files — homepage, services, about, areas, and contact. Each page has its own detailed layout spec in the prompt. Real client images (scraped in Step 1) are injected as ready-to-use &lt;img&gt; tags. Frontend design principles (Heebo font, CSS variables, gradient backgrounds, animations) are embedded in the system prompt so the output looks production-quality, not generic.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <strong>Draft Dapei Zahav Minisite</strong>
+          <span>Claude generates a single HTML page that looks like a real d.co.il listing — yellow/gold Dapei Zahav branding, phone/WhatsApp/contact buttons, about section, real gallery photos, service details, business hours, and a contact form. This is what the client's new paid listing will look like.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <strong>Generate Onboarding Welcome Message</strong>
+          <span>Only generated AFTER the website and minisite drafts exist — because the message includes links to both of them. Claude generates a personalized Hebrew message referencing the client's specific services, with placeholder links to the two drafts and questions asking the client to confirm their details. The client receives this before any human at Zap has looked at their file.</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="step-num">6</div>
+        <div class="step-content">
+          <strong>Log to CRM</strong>
+          <span>Creates a structured JSON record with a unique ID (e.g. ZAP-20260408131050), all extracted client data, and a timestamped log of every action taken. In production this would be a POST request to Salesforce, HubSpot, or any CRM API. In the prototype it writes to a local file.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Code Flow -->
+  <div class="section">
+    <div class="section-label">Code Flow</div>
+    <h2>Tracing a Full Run — Line by Line</h2>
+    <p>This is what actually happens in memory when you run <code>python main.py --name "יגאל מזגנים" --phone "072-3977065" --location "קריות"</code>. Reading this will help you explain the code as if you wrote every line yourself.</p>
+
+    <h3>Phase 1 — Startup</h3>
+    <p><code>main.py</code> is the entry point. Python runs it top to bottom. The first thing it does is import all the functions it needs from the other three files. At this point no code from those files actually runs — Python just reads the function definitions into memory.</p>
+
+    <div class="trace">
+      <div><span class="file">main.py</span> starts</div>
+      <div class="indent1"><span class="comment"># imports happen — functions are loaded into memory</span></div>
+      <div class="indent1"><span class="fn-call">argparse</span> reads the command-line arguments</div>
+      <div class="indent1"><span class="fn-call">ensure_output_dirs()</span> → creates output/, output/website/, output/minisite/</div>
+    </div>
+
+    <h3>Phase 2 — Discovery (scraper.py takes over)</h3>
+    <p>Because <code>--name</code> was passed, <code>main.py</code> calls <code>discover_assets()</code>. This is where the real work begins. The function opens a DuckDuckGo session and runs 4 searches one after another, collecting URLs into a Python set (sets automatically remove duplicates).</p>
+
+    <div class="trace">
+      <div><span class="file">scraper.py</span> — <span class="fn-call">discover_assets("יגאל מזגנים", "072-3977065", "קריות")</span></div>
+      <div class="indent1"><span class="fn-call">_phone_variants("072-3977065")</span> → <span class="ret">{"072-3977065", "0723977065", "723977065"}</span></div>
+      <div class="indent1"><span class="comment"># 4 DuckDuckGo queries run in sequence</span></div>
+      <div class="indent1">query 1: <span class="ret">"072-3977065 מזגנים"</span> → 5 URLs returned</div>
+      <div class="indent1">query 2: <span class="ret">"072-3977065 יגאל מזגנים"</span> → 5 URLs returned</div>
+      <div class="indent1">query 3: <span class="ret">"יגאל מזגנים קריות"</span> → 5 URLs returned</div>
+      <div class="indent1">query 4: <span class="ret">"יגאל מזגנים site:d.co.il OR ..."</span> → 5 URLs returned</div>
+      <div class="indent1"><span class="comment"># after deduplication: ~15 unique candidate URLs</span></div>
+      <div class="indent1"><span class="comment"># cross-verification loop:</span></div>
+      <div class="indent1"><span class="fn-call">scrape_url(candidate_url)</span> → get page text</div>
+      <div class="indent2"><span class="comment"># check: does "072-3977065" OR "0723977065" appear in the text?</span></div>
+      <div class="indent2">✓ imazganim.co.il → phone found → <span class="ret">verified</span></div>
+      <div class="indent2">✓ prosites.co.il → phone found → <span class="ret">verified</span></div>
+      <div class="indent2">✗ bakrayot.co.il → phone NOT found → <span class="ret">discarded</span></div>
+      <div class="indent1"><span class="ret">returns: [verified_url_1, verified_url_2, ...]</span></div>
+    </div>
+
+    <h3>Phase 3 — Full Scrape</h3>
+    <p>Back in <code>main.py</code>, the verified URLs are passed to <code>scrape_multiple()</code>. For each URL, it fetches the homepage, then calls <code>discover_internal_pages()</code> to find all the sub-pages, and scrapes those too. Everything is collected into a Python dictionary where the key is the URL and the value is the cleaned text.</p>
+
+    <div class="trace">
+      <div><span class="file">scraper.py</span> — <span class="fn-call">scrape_multiple([url1, url2])</span></div>
+      <div class="indent1"><span class="comment"># for each verified URL:</span></div>
+      <div class="indent1"><span class="fn-call">scrape_url(url)</span> → <span class="ret">homepage text (2,470 chars)</span></div>
+      <div class="indent1"><span class="fn-call">discover_internal_pages(url)</span> → <span class="ret">["/services", "/contact", "/about", ...]</span></div>
+      <div class="indent2"><span class="fn-call">scrape_url("/services")</span> → <span class="ret">text</span></div>
+      <div class="indent2"><span class="fn-call">scrape_url("/contact")</span> → <span class="ret">text</span></div>
+      <div class="indent2">... (all internal pages)</div>
+      <div class="indent1"><span class="ret">returns: {"imazganim.co.il (homepage)": "...", "/services": "...", ...}</span></div>
+      <div style="margin-top:8px"><span class="fn-call">collect_images(base_url)</span> → crawls pages for &lt;img&gt; tags</div>
+      <div class="indent1"><span class="ret">returns: [{url: "...installation.jpg", alt: "התקנת מזגנים"}, ...]</span></div>
+      <div style="margin-top:8px"><span class="fn-call">format_scraped_data(results)</span> → joins all texts into one blob</div>
+      <div class="indent1"><span class="ret">returns: one string, ~40,000 characters, passed to the LLM</span></div>
+    </div>
+
+    <h3>Phase 4 — AI Extraction (llm.py takes over)</h3>
+    <p>The 40,000 character text blob is sent to Claude with a prompt that says: "read all of this and extract the following fields as JSON." Claude reads it all and returns a clean JSON object. This is the <strong>client card</strong> — the structured representation of everything the scraper found.</p>
+
+    <div class="trace">
+      <div><span class="file">llm.py</span> — <span class="fn-call">extract_client_card(raw_text)</span></div>
+      <div class="indent1"><span class="fn-call">call_claude(system_prompt, "extract JSON from: " + raw_text)</span></div>
+      <div class="indent2"><span class="comment"># API call to claude-sonnet-4-20250514</span></div>
+      <div class="indent2"><span class="comment"># Claude reads 40,000 chars and returns ~2,000 chars of JSON</span></div>
+      <div class="indent1"><span class="ret">returns: '{"business_name": "יגאל מזגנים", "phone": "072-3977065", ...}'</span></div>
+      <div style="margin-top:8px"><span class="fn-call">generate_client_card_hebrew(client_card_json)</span></div>
+      <div class="indent1"><span class="comment"># second API call — takes the JSON, writes a Hebrew summary document</span></div>
+      <div class="indent1"><span class="ret">returns: markdown string saved as client_card.md</span></div>
+    </div>
+
+    <h3>Phase 5 — Content Generation</h3>
+    <p>Three more sets of API calls generate all the deliverables. The welcome message is one call. The website is <strong>five separate calls</strong> — one per page — because generating all 5 pages in one call would hit token limits and produce lower quality. The minisite is one call with a detailed layout spec.</p>
+
+    <div class="trace">
+      <div><span class="fn-call">generate_draft_website(client_card_json, images)</span></div>
+      <div class="indent1"><span class="comment"># loops through 5 page specs:</span></div>
+      <div class="indent1">call 1: <span class="ret">index.html</span> — homepage with hero, USPs, testimonial</div>
+      <div class="indent1">call 2: <span class="ret">services.html</span> — all services as cards</div>
+      <div class="indent1">call 3: <span class="ret">about.html</span> — story, brands, experience</div>
+      <div class="indent1">call 4: <span class="ret">areas.html</span> — service area grid</div>
+      <div class="indent1">call 5: <span class="ret">contact.html</span> — phone, form, WhatsApp</div>
+      <div class="indent1"><span class="comment"># each call: DESIGN_SYSTEM_PROMPT + page spec + client JSON + image URLs</span></div>
+      <div class="indent1"><span class="comment"># max_tokens=8192 so the HTML isn't cut off mid-tag</span></div>
+
+      <div style="margin-top:10px"><span class="fn-call">generate_draft_minisite(client_card_json, images)</span></div>
+      <div class="indent1"><span class="comment"># 1 API call → full Dapei Zahav listing HTML → saved as minisite/index.html</span></div>
+
+      <div style="margin-top:10px"><span class="fn-call">generate_welcome_message(client_card_json)</span></div>
+      <div class="indent1"><span class="comment"># LAST — website and minisite must exist first, message links to both</span></div>
+      <div class="indent1"><span class="ret">→ saved as welcome_message.md</span></div>
+    </div>
+
+    <h3>Phase 6 — CRM Logging (crm.py takes over)</h3>
+    <p>The final step. <code>crm.py</code> takes the client card JSON and the welcome message, builds a Python dictionary representing a CRM record, and writes it to a JSON file. In a real system this dictionary would be serialized and sent as the body of an HTTP POST request to a CRM API.</p>
+
+    <div class="trace">
+      <div><span class="file">crm.py</span> — <span class="fn-call">log_to_crm(client_card_json, welcome_msg, OUTPUT_DIR)</span></div>
+      <div class="indent1">crm_id = <span class="ret">"ZAP-" + datetime.now().strftime("%Y%m%d%H%M%S")</span></div>
+      <div class="indent1">builds crm_entry dict with: client_data, actions_taken[], deliverables{}</div>
+      <div class="indent1"><span class="fn-call">json.dump(crm_entry, file)</span> → <span class="ret">output/crm_log.json</span></div>
+      <div class="indent1"><span class="comment"># in production: requests.post(CRM_API_URL, json=crm_entry, headers=auth)</span></div>
+    </div>
+
+    <div class="callout blue" style="margin-top:20px;">
+      <strong>Total API calls to Claude in one full run:</strong> 8 calls — 1 for extraction, 1 for Hebrew summary, 1 for welcome message, 5 for website pages, 1 for minisite. Each call is independent; none depends on the response of another (except the extraction, which all generation calls use as input).
+    </div>
+  </div>
+
+  <!-- scraper.py -->
+  <div class="file-card">
+    <div class="file-header">
+      <div class="file-icon blue">🔍</div>
+      <div>
+        <div class="file-name">scraper.py</div>
+        <div class="file-tagline">Finds the client on the internet and reads their websites</div>
+      </div>
+    </div>
+    <div class="file-body">
+
+      <h3>What problem does it solve?</h3>
+      <p>The system only knows a business name, phone number, and city — it has no URL. This file's job is to go find where the business exists online, make sure each result actually belongs to the right business, and then read all the content from those pages.</p>
+
+      <h3>Function 1 — <code>discover_assets(name, phone, location)</code></h3>
+      <p>This is the "find the client" function. It runs 4 different DuckDuckGo searches — a phone-first query (most reliable for Israeli businesses), a name + location query, and directory-specific queries. It collects all unique URLs from the results, then visits each one to check whether the phone number appears on the page. Only URLs where the phone matches are kept.</p>
+
+      <div class="callout blue">
+        <strong>Why phone-first queries?</strong> When tested, searching "072-3977065 מזגנים" immediately returned imazganim.co.il and prosites.co.il — the two most relevant results. Searching by name alone returned many unrelated businesses. The phone number is the unique identifier that anchors everything to the right person.
+      </div>
+
+      <pre><span class="cm"># Example: cross-verification logic</span>
+<span class="kw">def</span> <span class="fn">_phone_variants</span>(phone):
+    digits_only = re.sub(<span class="st">r"\D"</span>, <span class="st">""</span>, phone)       <span class="cm"># 0723977065</span>
+    with_dash = re.sub(<span class="st">r"(\d{3})(\d+)"</span>, <span class="st">r"\1-\2"</span>, digits_only)  <span class="cm"># 072-3977065</span>
+    <span class="kw">return</span> {phone, digits_only, with_dash, digits_only[<span class="nu">1</span>:]}
+
+<span class="cm"># Then for each candidate URL:</span>
+<span class="kw">if</span> <span class="fn">any</span>(v <span class="kw">in</span> text <span class="kw">for</span> v <span class="kw">in</span> variants):
+    verified.append(url)   <span class="cm"># ✓ right business</span>
+<span class="kw">else</span>:
+    <span class="kw">pass</span>                   <span class="cm"># ✗ skip it</span></pre>
+
+      <h3>Function 2 — <code>scrape_url(url)</code></h3>
+      <p>The core scraping function. It makes a simple HTTP GET request using the <code>requests</code> library (like a browser loading a page, but without rendering JavaScript). Then <code>BeautifulSoup</code> parses the HTML, strips out all the noise (script tags, style tags, navigation menus), and extracts just the human-readable text.</p>
+
+      <div class="callout yellow">
+        <strong>Why not use a real browser (Playwright)?</strong> During development, browser-based scraping cost around 61 tool calls for one site — each page load, screenshot, and read is a separate operation. A simple <code>requests.get()</code> does the same in a single call. For static websites (which most Israeli small-business sites are), there's no need for a browser.
+      </div>
+
+      <h3>Function 3 — <code>discover_internal_pages(base_url)</code></h3>
+      <p>Once we have the homepage, this function reads all the links on it and finds every internal page — things like <code>/services</code>, <code>/contact</code>, <code>/about</code>. It only keeps links that stay on the same domain, so it doesn't accidentally follow external links. This is how we scraped 14 pages from Yigal's site automatically without knowing the URLs in advance.</p>
+
+      <h3>Function 4 — <code>collect_images(base_url)</code></h3>
+      <p>Crawls the client's pages looking for <code>&lt;img&gt;</code> tags. It filters out: data URIs (base64 embedded images), images hosted on external CDNs, and files that aren't proper photos (.jpg, .png, .webp). Returns up to 8 real photo URLs from the client's own domain. These are passed to the LLM so it can include real images in the gallery instead of grey placeholders.</p>
+
+      <table class="fn-table">
+        <tr><th>Function</th><th>Input</th><th>Output</th></tr>
+        <tr><td>discover_assets()</td><td>name, phone, location</td><td>List of verified URLs</td></tr>
+        <tr><td>scrape_url()</td><td>One URL</td><td>Clean text string</td></tr>
+        <tr><td>discover_internal_pages()</td><td>Homepage URL</td><td>List of internal page URLs</td></tr>
+        <tr><td>scrape_client()</td><td>Base URL</td><td>Dict of {source: text}</td></tr>
+        <tr><td>scrape_multiple()</td><td>List of URLs</td><td>Dict of {source: text}</td></tr>
+        <tr><td>collect_images()</td><td>Base URL</td><td>List of {url, alt} dicts</td></tr>
+        <tr><td>format_scraped_data()</td><td>Dict of texts</td><td>One big text blob</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- llm.py -->
+  <div class="file-card">
+    <div class="file-header">
+      <div class="file-icon purple">🧠</div>
+      <div>
+        <div class="file-name">llm.py</div>
+        <div class="file-tagline">All Claude API calls — extraction and content generation</div>
+      </div>
+    </div>
+    <div class="file-body">
+
+      <h3>What problem does it solve?</h3>
+      <p>Raw scraped text is unstructured. It might be 40,000 characters from 14 different web pages, in no particular order. This file sends that text to Claude with carefully written prompts that tell it exactly what to extract or generate. Every AI call in the project goes through here.</p>
+
+      <h3>The <code>call_claude()</code> helper</h3>
+      <p>All 5 AI functions use this one helper under the hood. It sets up the API client, sends the system prompt + user prompt to Claude, and returns the text response. Having one central function means you can change the model, add logging, or adjust settings in one place.</p>
+
+      <pre><span class="kw">def</span> <span class="fn">call_claude</span>(system_prompt, user_prompt, max_tokens=<span class="nu">2048</span>):
+    client = anthropic.Anthropic()
+    message = client.messages.create(
+        model=<span class="st">"claude-sonnet-4-20250514"</span>,
+        max_tokens=max_tokens,
+        system=system_prompt,
+        messages=[{<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: user_prompt}]
+    )
+    <span class="kw">return</span> message.content[<span class="nu">0</span>].text</pre>
+
+      <h3>The <code>DESIGN_SYSTEM_PROMPT</code> constant</h3>
+      <p>This is the most important design decision in <code>llm.py</code>. The first version of the generated websites looked generic — flat white backgrounds, Arial font, basic layouts. The solution was to extract the principles from Claude Code's <code>/frontend-design</code> skill and embed them directly into the system prompt sent to the API.</p>
+
+      <div class="callout purple">
+        <strong>The key insight:</strong> The <code>/frontend-design</code> skill is a Claude Code feature — it can't be called from outside Claude Code. But its design <em>principles</em> are just text. So we read them and copy-pasted the rules into our own system prompt. The model then applies those rules to every website and minisite it generates.
+      </div>
+
+      <p>The embedded rules include: use Google Fonts (specifically Heebo for Hebrew text), define colors as CSS custom properties in <code>:root</code>, use gradient or textured backgrounds (never flat white), add CSS transitions and staggered animations, use generous negative space and asymmetric layouts.</p>
+
+      <h3>The 5 generation functions</h3>
+
+      <table class="fn-table">
+        <tr><th>Function</th><th>Input</th><th>Output</th><th>Audience</th></tr>
+        <tr><td>extract_client_card()</td><td>Raw scraped text</td><td>JSON object</td><td>Internal (machine)</td></tr>
+        <tr><td>generate_client_card_hebrew()</td><td>Client card JSON</td><td>Markdown document</td><td>Zap producer</td></tr>
+        <tr><td>generate_welcome_message()</td><td>Client card JSON</td><td>Hebrew message</td><td>Client (auto-sent)</td></tr>
+        <tr><td>generate_draft_website()</td><td>JSON + images</td><td>Dict of 5 HTML files</td><td>Client (preview)</td></tr>
+        <tr><td>generate_draft_minisite()</td><td>JSON + images</td><td>One HTML file</td><td>Client (preview)</td></tr>
+      </table>
+
+      <h3>How <code>generate_draft_website()</code> works</h3>
+      <p>Rather than generating all 5 pages in one massive prompt, the function loops through a dictionary of page specs — each page has its own description of what it should contain and how it should look. Claude is called once per page. The results are returned as a dictionary of <code>filename → html_string</code>.</p>
+      <p><code>max_tokens</code> is set to 8192 for these calls (double the default) because rich HTML with inline CSS can easily be 300–500 lines long — a lower limit would cut the file off mid-tag.</p>
+
+      <h3>How image injection works</h3>
+      <p>The <code>_format_images()</code> helper converts the list of scraped image URLs into a block of ready-to-paste HTML that goes directly into the prompt. The model is told: "use these URLs in &lt;img&gt; tags, do not use placeholders." This is how the minisite gallery shows real photos from the client's own website.</p>
+
+      <pre><span class="cm"># What the model sees in the prompt:</span>
+REAL IMAGES FROM CLIENT'S SITE (use these in &lt;img&gt; tags):
+  <span class="nu">1</span>. &lt;img src=<span class="st">"https://www.imazganim.co.il/.../installation.jpg"</span> alt=<span class="st">"התקנת מזגנים"</span>&gt;
+  <span class="nu">2</span>. &lt;img src=<span class="st">"https://www.imazganim.co.il/.../repair.jpg"</span> alt=<span class="st">"תיקון מזגנים"</span>&gt;</pre>
+    </div>
+  </div>
+
+  <!-- main.py -->
+  <div class="file-card">
+    <div class="file-header">
+      <div class="file-icon green">⚙️</div>
+      <div>
+        <div class="file-name">main.py</div>
+        <div class="file-tagline">The orchestrator — runs everything in order</div>
+      </div>
+    </div>
+    <div class="file-body">
+
+      <h3>What problem does it solve?</h3>
+      <p>The other three files each do one thing well. <code>main.py</code> is the glue that connects them, runs them in the right sequence, handles command-line arguments, creates output directories, and saves every generated file to disk.</p>
+
+      <h3>Two run modes</h3>
+      <p>The file uses Python's <code>argparse</code> library to accept different input styles:</p>
+
+      <pre><span class="cm"># Discovery mode — simulates a real CRM trigger</span>
+python main.py --name <span class="st">"יגאל מזגנים"</span> --phone <span class="st">"072-3977065"</span> --location <span class="st">"קריות"</span>
+
+<span class="cm"># Direct URL mode — you already know the client's website</span>
+python main.py --url https://www.imazganim.co.il/
+
+<span class="cm"># No args — uses the demo client (fastest for testing)</span>
+python main.py</pre>
+
+      <div class="callout blue">
+        <strong>Why two modes?</strong> Discovery mode is what a real production system would use — the CRM fires a trigger with just the client's name and phone. Direct URL mode is useful for testing and for cases where the client provides their URL during the purchase checkout process.
+      </div>
+
+      <h3>The <code>run_pipeline(scraped_results, base_url)</code> function</h3>
+      <p>Once scraping is done, both modes converge into this single function. It doesn't care how the text was collected — it just processes it. This separation is good design: scraping and generation are independent concerns. You could swap out the scraper without touching the generation logic.</p>
+
+      <h3>Output structure</h3>
+      <p>Every file generated by the pipeline is saved under <code>output/</code>. The function calls <code>os.makedirs()</code> at the start to make sure the folders exist. File saving is handled by a simple <code>save_file()</code> helper that takes a relative path and content string.</p>
+
+      <pre>output/
+├── client_card.json       <span class="cm">← structured data</span>
+├── client_card.md         <span class="cm">← Hebrew summary for producer</span>
+├── welcome_message.md     <span class="cm">← client-facing message</span>
+├── crm_log.json           <span class="cm">← CRM entry</span>
+├── website/
+│   ├── index.html
+│   ├── services.html
+│   ├── about.html
+│   ├── areas.html
+│   └── contact.html
+└── minisite/
+    └── index.html</pre>
+    </div>
+  </div>
+
+  <!-- crm.py -->
+  <div class="file-card">
+    <div class="file-header">
+      <div class="file-icon orange">📋</div>
+      <div>
+        <div class="file-name">crm.py</div>
+        <div class="file-tagline">Simulates logging the completed onboarding back to the CRM system</div>
+      </div>
+    </div>
+    <div class="file-body">
+
+      <h3>The single function: <code>log_to_crm()</code></h3>
+      <p>This is the simplest file in the project. It has one job: take everything the pipeline produced and package it into a structured record. In production that record gets sent to a CRM platform. In our prototype it gets saved as a JSON file you can open and read.</p>
+
+      <h3>Real vs. Prototype — side by side</h3>
+      <div class="compare">
+        <div class="compare-box real">
+          <div class="compare-label">Real World</div>
+          <p>The last line of <code>log_to_crm()</code> would be an HTTP POST to a CRM API:</p>
+          <pre style="margin-top:10px; font-size:11px; background:#0a2a1a; border-radius:6px; padding:12px;">requests.post(
+  "https://api.hubspot.com/crm/v3/objects/contacts",
+  json=crm_entry,
+  headers={"Authorization": "Bearer " + API_KEY}
+)</pre>
+          <p style="margin-top:10px;">The CRM would store the record in a database, attach it to the client's profile, and make it searchable for the account manager.</p>
+        </div>
+        <div class="compare-box proto">
+          <div class="compare-label">Our Prototype</div>
+          <p>The last line writes to a local file instead:</p>
+          <pre style="margin-top:10px; font-size:11px; background:#2a1a0a; border-radius:6px; padding:12px;">json.dump(crm_entry, file,
+  ensure_ascii=False,
+  indent=2
+)</pre>
+          <p style="margin-top:10px;">The JSON file is saved as <code>output/crm_log.json</code>. The <em>structure</em> of the data is identical to what a real CRM would receive.</p>
+        </div>
+      </div>
+
+      <h3>What's inside the CRM record</h3>
+      <p>The function builds a Python dictionary with 6 fields. Here's what each one is and why it's there:</p>
+
+      <table class="fn-table">
+        <tr><th>Field</th><th>Example value</th><th>Purpose</th></tr>
+        <tr><td>crm_id</td><td><code>ZAP-20260408131050</code></td><td>Unique ID built from the timestamp. Lets you look up this specific onboarding event later.</td></tr>
+        <tr><td>created_at</td><td><code>2026-04-08T13:10:50</code></td><td>ISO format timestamp. Standard way to record when something happened.</td></tr>
+        <tr><td>status</td><td><code>onboarding_initiated</code></td><td>Tells the CRM what stage this client is at. Could later become <code>onboarding_complete</code>, <code>site_live</code>, etc.</td></tr>
+        <tr><td>client_data</td><td>Full JSON object</td><td>The entire extracted client card — name, phone, services, brands, testimonials. Everything the AI found.</td></tr>
+        <tr><td>actions_taken</td><td>List of 5 objects</td><td>A timestamped audit trail of every step the pipeline completed. Useful for debugging or compliance.</td></tr>
+        <tr><td>deliverables</td><td>File path dict</td><td>Pointers to where each output was saved — so the account manager can find the draft website, client card, etc.</td></tr>
+      </table>
+
+      <h3>The action log — what it looks like</h3>
+      <p>The <code>actions_taken</code> field is a list of records, one per pipeline step. Each record has the action name, timestamp, and a human-readable description. This is what an account manager or a support team would see if they pulled up this client's record in the CRM.</p>
+
+      <pre><span class="cm"># The 5 actions logged, in order:</span>
+{ <span class="st">"action"</span>: <span class="st">"digital_assets_scanned"</span>,   <span class="st">"timestamp"</span>: <span class="st">"2026-04-08T13:10:50"</span> }
+{ <span class="st">"action"</span>: <span class="st">"client_card_generated"</span>,    <span class="st">"timestamp"</span>: <span class="st">"2026-04-08T13:10:50"</span> }
+{ <span class="st">"action"</span>: <span class="st">"welcome_message_sent"</span>,     <span class="st">"timestamp"</span>: <span class="st">"2026-04-08T13:10:50"</span>, <span class="st">"channel"</span>: <span class="st">"email"</span> }
+{ <span class="st">"action"</span>: <span class="st">"draft_website_generated"</span>,  <span class="st">"timestamp"</span>: <span class="st">"2026-04-08T13:10:50"</span> }
+{ <span class="st">"action"</span>: <span class="st">"draft_minisite_generated"</span>, <span class="st">"timestamp"</span>: <span class="st">"2026-04-08T13:10:50"</span> }</pre>
+
+      <div class="callout yellow">
+        <strong>Important to understand:</strong> The timestamps in the prototype all look the same because we build the entire CRM entry at once at the end of the pipeline. In a real system, each action would be logged the moment it happened — so the timestamps would be minutes apart and reflect the real duration of each step.
+      </div>
+
+      <h3>What is NOT in this file</h3>
+      <p>Notice that <code>crm.py</code> does not do any scraping, AI calls, or HTML generation. It only takes data that was already produced by the other files and formats it. This is intentional — each file has one clear responsibility and does not cross into another file's territory. If tomorrow Zap switches from HubSpot to Salesforce, only this file needs to change.</p>
+
+    </div>
+  </div>
+
+  <!-- Key Concepts -->
+  <div class="section">
+    <div class="section-label">For the Interview</div>
+    <h2>Key Concepts to Know Cold</h2>
+
+    <h3>Why did you use requests + BeautifulSoup instead of a browser?</h3>
+    <p>Browser automation (Playwright, Selenium) renders JavaScript and is very powerful — but it's slow and expensive in API credits. During our research phase, one agent using Playwright made 61 tool calls just to read one site. <code>requests.get()</code> fetches the same page in a single network call. Since Yigal's site (and most Israeli small-business sites) is static HTML with no JS rendering required, a simple HTTP request is faster, cheaper, and equally effective.</p>
+
+    <h3>How does the system make sure it found the right business?</h3>
+    <p>Phone number cross-verification. When you search "Yigal AC technician Krayot," you get results for many different people named Yigal. The unique identifier is the phone number from the CRM. Every candidate URL is scraped, and the phone (in several formats — with/without dashes, with/without country code) is searched in the text. Only pages where the phone appears are kept.</p>
+
+    <h3>What is a system prompt vs. a user prompt?</h3>
+    <p>The Claude API accepts two messages: a <strong>system prompt</strong> (persistent instructions that set the model's role and rules — in our case, the design principles) and a <strong>user prompt</strong> (the actual task for this specific call — the page spec and client data). The system prompt is like giving someone their job description; the user prompt is giving them today's task.</p>
+
+    <h3>What's simulated vs. what's real?</h3>
+    <p>The scraping, AI extraction, and HTML generation are all real — they run against actual live websites. What's simulated is: (1) the CRM write (a JSON file instead of an API call) and (2) the message sending (a markdown file instead of an email/WhatsApp API call). In production, both would be API calls to whatever platforms Zap uses.</p>
+
+    <h3>Why generate 5 pages separately instead of one big prompt?</h3>
+    <p>Context limits and quality. A single prompt asking for an entire 5-page website would either hit the output token limit (cutting off mid-file) or produce lower-quality results across all pages because the model has to split its attention. Generating one page at a time lets each page get a focused, detailed spec — and each page can be as long as it needs to be.</p>
+  </div>
+
+  <div style="text-align:center; color:#aaa; font-size:13px; padding: 20px 0 40px;">
+    Zap Onboarding AI — github.com/shaiaviv/zap-onboarding-ai
+  </div>
+
+</div>
+</body>
+</html>

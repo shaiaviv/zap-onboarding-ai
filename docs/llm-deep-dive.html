@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>llm.py — Full Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f8f9fc;
+    --white: #ffffff;
+    --border: #e2e5ef;
+    --text: #1a1a2e;
+    --muted: #6b7280;
+    --light: #f3f4f6;
+
+    --system-bg: #fff7ed;
+    --system-border: #fb923c;
+    --system-text: #7c2d12;
+    --system-label: #ea580c;
+
+    --user-bg: #eff6ff;
+    --user-border: #3b82f6;
+    --user-text: #1e3a5f;
+    --user-label: #2563eb;
+
+    --code-bg: #1e1e2e;
+    --code-text: #cdd6f4;
+
+    --fn1: #7c3aed; /* call_claude */
+    --fn2: #0891b2; /* extract_client_card */
+    --fn3: #059669; /* generate_client_card_hebrew */
+    --fn4: #d97706; /* generate_welcome_message */
+    --fn5: #4f46e5; /* DESIGN_SYSTEM_PROMPT */
+    --fn6: #dc2626; /* _format_images */
+    --fn7: #0f766e; /* generate_draft_website */
+    --fn8: #a21caf; /* generate_draft_minisite */
+
+    --kw: #f38ba8;
+    --str: #a6e3a1;
+    --fn-color: #cba6f7;
+    --num: #fab387;
+    --cm: #6c7086;
+    --va: #cdd6f4;
+    --key: #89dceb;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  /* ── Nav ── */
+  .topnav {
+    background: var(--text);
+    color: white;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topnav-title { font-weight: 700; font-size: 15px; color: #a5b4fc; font-family: 'JetBrains Mono', monospace; }
+  .topnav-links { display: flex; gap: 10px; flex-wrap: wrap; }
+  .topnav-links a {
+    color: #9ca3af;
+    text-decoration: none;
+    font-size: 12px;
+    padding: 4px 10px;
+    border: 1px solid #374151;
+    border-radius: 5px;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .topnav-links a:hover { color: white; border-color: #6366f1; background: #312e81; }
+  .back-link { color: #9ca3af; text-decoration: none; font-size: 13px; transition: color .2s; }
+  .back-link:hover { color: #a5b4fc; }
+
+  /* ── Page ── */
+  .page { max-width: 100%; margin: 0 auto; padding: 48px 48px 80px; }
+
+  /* ── Hero ── */
+  .hero {
+    background: var(--text);
+    color: white;
+    border-radius: 16px;
+    padding: 52px 48px;
+    margin-bottom: 56px;
+  }
+  .hero-tag {
+    display: inline-block;
+    padding: 3px 12px;
+    background: rgba(165,180,252,0.15);
+    border: 1px solid rgba(165,180,252,0.4);
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #a5b4fc;
+    margin-bottom: 20px;
+  }
+  .hero h1 { font-size: 2.4rem; font-weight: 800; margin-bottom: 14px; line-height: 1.2; }
+  .hero h1 span { color: #a5b4fc; font-family: 'JetBrains Mono', monospace; }
+  .hero p { color: #9ca3af; font-size: 1rem; line-height: 1.7; }
+
+  /* ── Function card ── */
+  .fn-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 56px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .fn-card-header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .fn-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 16px;
+    color: white;
+    flex-shrink: 0;
+  }
+  .fn-header-info { flex: 1; }
+  .fn-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .fn-desc { color: var(--muted); font-size: 14px; }
+  .fn-io {
+    display: flex;
+    gap: 24px;
+    margin-top: 12px;
+    font-size: 13px;
+  }
+  .fn-io-item { display: flex; align-items: center; gap: 6px; }
+  .fn-io-item .label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .fn-io-item code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--light);
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: var(--text);
+  }
+
+  .fn-body { padding: 32px; }
+
+  /* ── Plain explanation ── */
+  .plain-explain {
+    background: var(--light);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    font-size: 14px;
+    line-height: 1.75;
+    color: #374151;
+  }
+  .plain-explain strong { color: var(--text); }
+
+  /* ── Code block ── */
+  .code-wrap {
+    background: var(--code-bg);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    font-size: 13.5px;
+  }
+  .code-header {
+    padding: 10px 20px;
+    background: #181825;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #6c7086;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .code-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .code-body { padding: 20px 24px; overflow-x: auto; }
+  pre { font-family: 'JetBrains Mono', monospace; line-height: 1.7; color: var(--code-text); }
+  .kw { color: #f38ba8; }
+  .str { color: #a6e3a1; }
+  .fni { color: #cba6f7; }
+  .num { color: #fab387; }
+  .cm { color: #6c7086; font-style: italic; }
+  .va { color: #cdd6f4; }
+  .key2 { color: #89dceb; }
+  .fstr { color: #f9e2af; }  /* f-string variable */
+
+  /* ── System vs User prompt boxes ── */
+  .prompt-pair {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .prompt-box {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid;
+  }
+  .prompt-box.system { border-color: var(--system-border); }
+  .prompt-box.user { border-color: var(--user-border); }
+
+  .prompt-label {
+    padding: 10px 20px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .prompt-box.system .prompt-label {
+    background: var(--system-border);
+    color: white;
+  }
+  .prompt-box.user .prompt-label {
+    background: var(--user-border);
+    color: white;
+  }
+  .prompt-label .role-desc {
+    font-size: 12px;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.9;
+  }
+
+  .prompt-content {
+    padding: 20px 24px;
+    font-size: 13.5px;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .prompt-box.system .prompt-content { background: var(--system-bg); color: var(--system-text); }
+  .prompt-box.user .prompt-content { background: var(--user-bg); color: var(--user-text); }
+
+  .prompt-annotation {
+    padding: 14px 20px;
+    font-size: 13px;
+    line-height: 1.6;
+    border-top: 1px solid;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .prompt-box.system .prompt-annotation { border-color: #fed7aa; background: #fff7ed; color: #9a3412; }
+  .prompt-box.user .prompt-annotation { border-color: #bfdbfe; background: #eff6ff; color: #1e40af; }
+
+  .inject-highlight {
+    background: #fef08a;
+    color: #713f12;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
+
+  /* ── Line annotation table ── */
+  .line-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-bottom: 24px; }
+  .line-table tr { border-bottom: 1px solid var(--border); }
+  .line-table tr:last-child { border-bottom: none; }
+  .line-table td { padding: 12px 16px; vertical-align: top; }
+  .line-table td:first-child {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--code-bg);
+    color: var(--code-text);
+    width: 50%;
+    border-radius: 0;
+    white-space: pre;
+  }
+  .line-table td:last-child { color: #374151; width: 50%; }
+  .line-table td:last-child strong { color: var(--text); display: block; margin-bottom: 4px; }
+
+  /* ── Callout ── */
+  .callout {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.7;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout.blue { background: #eff6ff; border-left: 4px solid #3b82f6; }
+  .callout.orange { background: #fff7ed; border-left: 4px solid #f97316; }
+  .callout.green { background: #f0fdf4; border-left: 4px solid #22c55e; }
+  .callout.yellow { background: #fefce8; border-left: 4px solid #eab308; }
+  .callout.purple { background: #faf5ff; border-left: 4px solid #a855f7; }
+  .callout p { margin: 0; }
+  .callout strong { color: var(--text); }
+
+  /* ── Section header ── */
+  .section-h {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    margin-top: 28px;
+  }
+  .section-h:first-child { margin-top: 0; }
+
+  /* ── Divider ── */
+  .divider {
+    border: none;
+    border-top: 2px dashed var(--border);
+    margin: 28px 0;
+  }
+
+  /* ── Token visual ── */
+  .token-vis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 16px;
+    background: var(--light);
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+  .token {
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+  .token.t1 { background: #fef9c3; border-color: #fde047; color: #713f12; }
+  .token.t2 { background: #dcfce7; border-color: #86efac; color: #14532d; }
+  .token.t3 { background: #e0f2fe; border-color: #7dd3fc; color: #075985; }
+  .token.t4 { background: #fce7f3; border-color: #f9a8d4; color: #831843; }
+
+  /* ── TOC ── */
+  .toc {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 48px;
+  }
+  .toc h3 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 18px; }
+  .toc-list { display: flex; flex-direction: column; gap: 8px; }
+  .toc-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text);
+    border: 1px solid var(--border);
+    transition: all .2s;
+    font-size: 14px;
+  }
+  .toc-item:hover { border-color: #6366f1; background: #f5f3ff; }
+  .toc-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .toc-item .fn-label { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; }
+  .toc-item .fn-summary { color: var(--muted); font-size: 12px; margin-top: 1px; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="code-explainer.html" class="back-link">← Code Explainer</a>
+  <span class="topnav-title">llm.py — Deep Dive</span>
+  <div class="topnav-links">
+    <a href="code-walkthrough.html">Code Walkthrough</a>
+    <a href="#fn-call-claude">call_claude</a>
+    <a href="#fn-extract">extract_client_card</a>
+    <a href="#fn-hebrew">client_card_hebrew</a>
+    <a href="#fn-welcome">welcome_message</a>
+    <a href="#fn-design">DESIGN_PROMPT</a>
+    <a href="#fn-website">draft_website</a>
+    <a href="#fn-minisite">draft_minisite</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-tag">Deep Dive</div>
+    <h1>Every line of <span>llm.py</span><br>fully explained</h1>
+    <p>Every function, every prompt, every line — broken down without shortcuts. Understand exactly what gets sent to Claude, why, and what comes back.</p>
+  </div>
+
+  <!-- Key concept first -->
+  <div class="callout blue" style="margin-bottom: 40px; font-size: 15px;">
+    <div class="callout-icon">💡</div>
+    <div>
+      <strong>The one idea that unlocks this whole file:</strong><br>
+      Every function in llm.py does the same thing — it builds two strings (a system prompt and a user prompt), sends them to Claude, and returns what Claude writes back. The only thing that changes between functions is <em>what those strings say</em>.
+    </div>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <h3>Functions in this file</h3>
+    <div class="toc-list">
+      <a href="#fn-call-claude" class="toc-item">
+        <div class="toc-dot" style="background:var(--fn1)"></div>
+        <div>
+          <div class="fn-label">call_claude()</div>
+          <div class="fn-summary">The base function — every other function calls this one. Sends two strings to Claude, returns one string.</div>
+        </div>
+      </a>
+      <a href="#fn-extract" class="toc-item">
+        <div class="toc-dot" style="background:var(--fn2)"></div>
+        <div>
+          <div class="fn-label">extract_client_card()</div>
+          <div class="fn-summary">Sends scraped website text to Claude, gets back a structured JSON with the business's details.</div>
+        </div>
+      </a>
+      <a href="#fn-hebrew" class="toc-item">
+        <div class="toc-dot" style="background:var(--fn3)"></div>
+        <div>
+          <div class="fn-label">generate_client_card_hebrew()</div>
+          <div class="fn-summary">Takes the JSON and turns it into a readable Hebrew document for the Zap producer.</div>
+        </div>
+      </a>
+      <a href="#fn-welcome" class="toc-item">
+        <div class="toc-dot" style="background:var(--fn4)"></div>
+        <div>
+          <div class="fn-label">generate_welcome_message()</div>
+          <div class="fn-summary">Writes the personalized onboarding WhatsApp/email message the client receives.</div>
+        </div>
+      </a>
+      <a href="#fn-design" class="toc-item">
+        <div class="toc-dot" style="background:var(--fn5)"></div>
+        <div>
+          <div class="fn-label">DESIGN_SYSTEM_PROMPT</div>
+          <div class="fn-summary">Not a function — a constant. The shared design rules used for all website generation calls.</div>
+        </div>
+      </a>
+      <a href="#fn-format" class="toc-item">
+        <div class="toc-dot" style="background:var(--fn6)"></div>
+        <div>
+          <div class="fn-label">_format_images()</div>
+          <div class="fn-summary">Converts a list of image URLs into a text block that Claude can read and use in HTML.</div>
+        </div>
+      </a>
+      <a href="#fn-website" class="toc-item">
+        <div class="toc-dot" style="background:var(--fn7)"></div>
+        <div>
+          <div class="fn-label">generate_draft_website()</div>
+          <div class="fn-summary">Loops through 5 page specs and makes 5 separate API calls. Returns a dict of filename → HTML.</div>
+        </div>
+      </a>
+      <a href="#fn-minisite" class="toc-item">
+        <div class="toc-dot" style="background:var(--fn8)"></div>
+        <div>
+          <div class="fn-label">generate_draft_minisite()</div>
+          <div class="fn-summary">One API call, one HTML file — a Dapei Zahav-style listing page.</div>
+        </div>
+      </a>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- SETUP -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="fn-card" style="border-top: 4px solid #374151;">
+    <div class="fn-card-header">
+      <div class="fn-number" style="background:#374151;">0</div>
+      <div class="fn-header-info">
+        <div class="fn-name" style="color:#374151;">Module setup — before any function</div>
+        <div class="fn-desc">The code at the top of the file that runs once when Python imports llm.py</div>
+      </div>
+    </div>
+    <div class="fn-body">
+      <div class="code-wrap">
+        <div class="code-header"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div> llm.py — lines 1–13</div>
+        <div class="code-body"><pre><span class="kw">import</span> <span class="va">os</span>
+<span class="kw">import</span> <span class="va">json</span>
+<span class="kw">from</span> <span class="va">anthropic</span> <span class="kw">import</span> <span class="fni">Anthropic</span>
+<span class="kw">from</span> <span class="va">dotenv</span> <span class="kw">import</span> <span class="fni">load_dotenv</span>
+
+<span class="fni">load_dotenv</span>()
+
+<span class="va">client</span> <span class="kw">=</span> <span class="fni">Anthropic</span>(api_key=<span class="va">os</span>.<span class="fni">getenv</span>(<span class="str">"ANTHROPIC_API_KEY"</span>))
+<span class="va">MODEL</span> <span class="kw">=</span> <span class="str">"claude-sonnet-4-20250514"</span></pre></div>
+      </div>
+
+      <table class="line-table">
+        <tr>
+          <td>from dotenv import load_dotenv
+load_dotenv()</td>
+          <td><strong>Reads your .env file</strong>
+The .env file contains <code>ANTHROPIC_API_KEY=sk-ant-...</code>. <code>load_dotenv()</code> reads that file and puts its contents into the system's environment variables — so the next line can find it with <code>os.getenv()</code>. Without this, the API key wouldn't exist yet.</td>
+        </tr>
+        <tr>
+          <td>client = Anthropic(api_key=...)</td>
+          <td><strong>Creates the HTTP connection object</strong>
+This is like opening a connection to a server. You do it once at module level (top of file, outside functions) so all 6+ functions reuse the same connection instead of creating a new one each time. <code>os.getenv("ANTHROPIC_API_KEY")</code> reads the key that load_dotenv() just loaded.</td>
+        </tr>
+        <tr>
+          <td>MODEL = "claude-sonnet-4-20250514"</td>
+          <td><strong>One place to change the model</strong>
+UPPERCASE means "this is a constant — don't change it during runtime." If you wanted to switch to a cheaper or more powerful Claude model, you'd change it here and every function picks it up automatically.</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- CALL_CLAUDE -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="fn-card" id="fn-call-claude" style="border-top: 4px solid var(--fn1);">
+    <div class="fn-card-header">
+      <div class="fn-number" style="background:var(--fn1);">1</div>
+      <div class="fn-header-info">
+        <div class="fn-name" style="color:var(--fn1);">call_claude(system_prompt, user_prompt, max_tokens=4096)</div>
+        <div class="fn-desc">The base layer. Every other function in this file calls this one. It's the only place that actually touches the Anthropic API.</div>
+        <div class="fn-io">
+          <div class="fn-io-item"><span class="label">in</span><code>system_prompt: str</code></div>
+          <div class="fn-io-item"><span class="label">in</span><code>user_prompt: str</code></div>
+          <div class="fn-io-item"><span class="label">in</span><code>max_tokens: int</code></div>
+          <div class="fn-io-item"><span class="label">out</span><code>str (Claude's response)</code></div>
+        </div>
+      </div>
+    </div>
+    <div class="fn-body">
+
+      <div class="code-wrap">
+        <div class="code-header"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div> llm.py — lines 16–24</div>
+        <div class="code-body"><pre><span class="kw">def</span> <span class="fni">call_claude</span>(system_prompt, user_prompt, max_tokens=<span class="num">4096</span>):
+    response = <span class="va">client</span>.messages.<span class="fni">create</span>(
+        model=<span class="va">MODEL</span>,
+        max_tokens=max_tokens,
+        system=system_prompt,
+        messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: user_prompt}],
+    )
+    <span class="kw">return</span> response.content[<span class="num">0</span>].text</pre></div>
+      </div>
+
+      <table class="line-table">
+        <tr>
+          <td>max_tokens=4096</td>
+          <td><strong>Default value in the function signature</strong>
+If you call <code>call_claude(s, u)</code> without a third argument, max_tokens is automatically 4096. If you call <code>call_claude(s, u, max_tokens=8192)</code> it uses 8192. This is Python's default parameter syntax.</td>
+        </tr>
+        <tr>
+          <td>client.messages.create(...)</td>
+          <td><strong>The actual API call</strong>
+This sends an HTTPS request to Anthropic's servers. The code pauses here and waits for Claude to respond — this can take 5–30 seconds depending on how much Claude needs to write.</td>
+        </tr>
+        <tr>
+          <td>system=system_prompt</td>
+          <td><strong>Who Claude is for this call</strong>
+The system prompt is passed as a separate field — not as part of the messages list. This is intentional: Claude treats the system prompt as a persistent identity that's harder to override.</td>
+        </tr>
+        <tr>
+          <td>messages=[{"role": "user", "content": user_prompt}]</td>
+          <td><strong>The conversation history</strong>
+This is a list because Claude's API supports multi-turn conversations (user → assistant → user → ...). Here we always have just one message: the user's request. The list wrapping is required by the API even when there's only one message.</td>
+        </tr>
+        <tr>
+          <td>response.content[0].text</td>
+          <td><strong>Extracting Claude's text from the response object</strong>
+<code>response</code> is a Python object with many fields. <code>response.content</code> is a list of "content blocks" — Claude can return text blocks and tool-use blocks mixed together. <code>[0]</code> takes the first one. <code>.text</code> extracts the string. We always get exactly one text block here.</td>
+        </tr>
+      </table>
+
+      <div class="callout yellow">
+        <div class="callout-icon">⚠️</div>
+        <div><strong>max_tokens is the OUTPUT limit only.</strong> Your input (the prompts you send) has a separate limit of 200,000 tokens and is counted separately. max_tokens only controls how long Claude's response can be. If Claude's answer would naturally be longer, it gets cut off mid-sentence.</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- EXTRACT_CLIENT_CARD -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="fn-card" id="fn-extract" style="border-top: 4px solid var(--fn2);">
+    <div class="fn-card-header">
+      <div class="fn-number" style="background:var(--fn2);">2</div>
+      <div class="fn-header-info">
+        <div class="fn-name" style="color:var(--fn2);">extract_client_card(scraped_text)</div>
+        <div class="fn-desc">First call in the pipeline. Takes a wall of raw scraped website text and asks Claude to pull out only the useful structured data.</div>
+        <div class="fn-io">
+          <div class="fn-io-item"><span class="label">in</span><code>scraped_text: str</code> (raw text from all websites)</div>
+          <div class="fn-io-item"><span class="label">out</span><code>str</code> (a JSON string)</div>
+        </div>
+      </div>
+    </div>
+    <div class="fn-body">
+
+      <p class="section-h">The system prompt</p>
+      <div class="prompt-box system">
+        <div class="prompt-label">🟠 System Prompt <span class="role-desc">— tells Claude who it is and what format to use</span></div>
+        <div class="prompt-content">You are a data extraction assistant for Zap Group, an Israeli digital services company.
+Your job is to extract structured business information from raw scraped website text.
+Return ONLY valid JSON — no markdown, no explanation.</div>
+        <div class="prompt-annotation">
+          💬 <div>
+            <strong>"Return ONLY valid JSON"</strong> is doing critical work. Without it, Claude would wrap the JSON in a markdown code fence like <code>```json ... ```</code> and add friendly text like "Here's what I found!" — which would completely break <code>json.loads()</code> later. The word ONLY forces Claude to output nothing but the JSON object.
+          </div>
+        </div>
+      </div>
+
+      <p class="section-h">The user prompt</p>
+      <div class="prompt-box user">
+        <div class="prompt-label">🔵 User Prompt <span class="role-desc">— the actual task with the schema and the data</span></div>
+        <div class="prompt-content">Extract all business information from the following scraped data and return a JSON object with these fields:
+
+{
+  "business_name": "Hebrew business name",
+  "business_name_english": "English transliteration",
+  "owner_name": "if found",
+  "phone": "main phone number",
+  "email": "if found",
+  "address": "full address if found",
+  "city": "city name",
+  "region": "region/area",
+  "services": ["list of services offered"],
+  "service_areas": ["list of cities/areas served"],
+  "brands": ["brands they work with"],
+  "years_experience": "number or description",
+  "description": "2-3 sentence Hebrew description",
+  "website_url": "their current website",
+  "social_media": {"platform": "url"},
+  "google_rating": "if found",
+  "google_reviews_count": "if found",
+  "testimonials": ["key customer quotes"],
+  "unique_selling_points": ["what makes them stand out"],
+  "notes_for_producer": ["observations useful for the Zap producer"]
+}
+
+SCRAPED DATA:
+<span style="background:#bfdbfe;color:#1e3a5f;padding:1px 4px;border-radius:3px;">{scraped_text}</span></div>
+        <div class="prompt-annotation">
+          💬 <div>
+            The blue highlight shows where the actual scraped website text gets injected via the f-string (<code>{scraped_text}</code>). Everything else is literal text — it's the same every time. The JSON schema tells Claude exactly what fields to look for and what to name them, so the output is always the same structure regardless of what's on the website.
+          </div>
+        </div>
+      </div>
+
+      <p class="section-h">The markdown strip</p>
+      <div class="code-wrap">
+        <div class="code-header"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div> lines 62–65</div>
+        <div class="code-body"><pre>result = <span class="fni">call_claude</span>(system, prompt, max_tokens=<span class="num">4096</span>)
+
+<span class="kw">if</span> result.<span class="fni">startswith</span>(<span class="str">"```"</span>):
+    result = result.<span class="fni">split</span>(<span class="str">"\n"</span>, <span class="num">1</span>)[<span class="num">1</span>].<span class="fni">rsplit</span>(<span class="str">"```"</span>, <span class="num">1</span>)[<span class="num">0</span>]
+
+<span class="kw">return</span> result</pre></div>
+      </div>
+
+      <div class="callout orange">
+        <div class="callout-icon">🧹</div>
+        <div>
+          <strong>What the strip does, step by step:</strong><br><br>
+          If Claude returned: <code>```json\n{"business_name": "יגאל"}\n```</code><br><br>
+          <code>result.split("\n", 1)</code> splits into: <code>["```json", '{"business_name": "יגאל"}\n```']</code><br>
+          <code>[1]</code> takes the second part: <code>'{"business_name": "יגאל"}\n```'</code><br>
+          <code>.rsplit("```", 1)</code> splits from the right: <code>['{"business_name": "יגאל"}\n', '']</code><br>
+          <code>[0]</code> takes the first part: <code>'{"business_name": "יגאל"}'</code> — clean JSON.<br><br>
+          The <code>1</code> in both split calls means "split only once." This protects against cases where the content itself might contain backticks.
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- GENERATE_CLIENT_CARD_HEBREW -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="fn-card" id="fn-hebrew" style="border-top: 4px solid var(--fn3);">
+    <div class="fn-card-header">
+      <div class="fn-number" style="background:var(--fn3);">3</div>
+      <div class="fn-header-info">
+        <div class="fn-name" style="color:var(--fn3);">generate_client_card_hebrew(client_card_json)</div>
+        <div class="fn-desc">Takes the JSON from step 2 and reformats it into a readable Hebrew document for the Zap producer (the human account manager who will work with the client).</div>
+        <div class="fn-io">
+          <div class="fn-io-item"><span class="label">in</span><code>client_card_json: str</code> (the JSON string from extract_client_card)</div>
+          <div class="fn-io-item"><span class="label">out</span><code>str</code> (Hebrew Markdown document)</div>
+        </div>
+      </div>
+    </div>
+    <div class="fn-body">
+
+      <div class="callout blue">
+        <div class="callout-icon">🔄</div>
+        <div><strong>Same data, different purpose.</strong> The JSON from step 2 is machine-readable — good for code. This step turns it into a human-readable document — good for the producer to read before calling the client.</div>
+      </div>
+
+      <p class="section-h">The system prompt</p>
+      <div class="prompt-box system">
+        <div class="prompt-label">🟠 System Prompt</div>
+        <div class="prompt-content">You are a content writer for Zap Group, an Israeli digital services company.
+Write in professional Hebrew. The audience is a Zap producer (account manager)
+who needs to quickly understand a new client.</div>
+        <div class="prompt-annotation">
+          💬 <div>Notice the system prompt specifies the <strong>audience</strong> — "a Zap producer who needs to quickly understand a new client." This shapes the tone and level of detail. Claude writes differently when it knows who will read the output.</div>
+        </div>
+      </div>
+
+      <p class="section-h">The user prompt</p>
+      <div class="prompt-box user">
+        <div class="prompt-label">🔵 User Prompt</div>
+        <div class="prompt-content">Based on the following client data, write a professional Hebrew "כרטיס לקוח" (Client Card) document.
+
+The card should include:
+1. A header with the business name and key details
+2. A summary section about the business
+3. Services and brands
+4. Service areas
+5. Digital presence status (where they are online, where they're missing)
+6. Customer reviews/reputation summary
+7. Notes and recommendations for the producer
+
+Format it nicely with Hebrew headers and bullet points.
+
+CLIENT DATA:
+<span style="background:#bfdbfe;color:#1e3a5f;padding:1px 4px;border-radius:3px;">{client_card_json}</span></div>
+        <div class="prompt-annotation">
+          💬 <div>The numbered list tells Claude the exact sections to include and in what order. Without this structure, Claude might decide to include or omit whatever it thinks is relevant. The injected value is the JSON string from the previous function — the full extracted business data.</div>
+        </div>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div> line 89</div>
+        <div class="code-body"><pre><span class="kw">return</span> <span class="fni">call_claude</span>(system, prompt, max_tokens=<span class="num">4096</span>)</pre></div>
+      </div>
+
+      <div class="plain-explain">Notice this function has no markdown strip — because we <em>want</em> Markdown here. The output is saved as a <code>.md</code> file for the producer to read. Bold headers, bullet points — all intentional. Only JSON extraction needs the strip.</div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- GENERATE_WELCOME_MESSAGE -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="fn-card" id="fn-welcome" style="border-top: 4px solid var(--fn4);">
+    <div class="fn-card-header">
+      <div class="fn-number" style="background:var(--fn4);">4</div>
+      <div class="fn-header-info">
+        <div class="fn-name" style="color:var(--fn4);">generate_welcome_message(client_card_json)</div>
+        <div class="fn-desc">Writes the personalized message sent to the client after they purchase. Must feel personal — using their business name, referencing their services — not generic.</div>
+        <div class="fn-io">
+          <div class="fn-io-item"><span class="label">in</span><code>client_card_json: str</code></div>
+          <div class="fn-io-item"><span class="label">out</span><code>str</code> (Hebrew WhatsApp/email message)</div>
+        </div>
+      </div>
+    </div>
+    <div class="fn-body">
+
+      <p class="section-h">The system prompt</p>
+      <div class="prompt-box system">
+        <div class="prompt-label">🟠 System Prompt</div>
+        <div class="prompt-content">You are a friendly customer success representative at Zap Group.
+Write a warm, professional welcome message in Hebrew.
+The message will be sent to a new client who just purchased
+a website + Dapei Zahav minisite package.</div>
+        <div class="prompt-annotation">
+          💬 <div>This system prompt sets a completely different tone than the previous ones — "friendly," "warm." The context ("just purchased a package") tells Claude why the message is being sent, which shapes what it says.</div>
+        </div>
+      </div>
+
+      <p class="section-h">The user prompt</p>
+      <div class="prompt-box user">
+        <div class="prompt-label">🔵 User Prompt</div>
+        <div class="prompt-content">Write a personalized onboarding welcome message (email/WhatsApp) for this new client.
+
+The message should:
+1. Welcome them warmly by name/business name
+2. Show that we already know about their business (reference specific services they offer)
+3. Mention that we've prepared a draft website and Dapei Zahav minisite for them to review
+4. Include placeholder links: [LINK_DRAFT_WEBSITE] and [LINK_DRAFT_MINISITE]
+5. Explain what to expect in the onboarding process
+6. Ask them to confirm key details — phrase it as questions TO the client:
+   "האם המספר שלך הוא X?" not "פרטי הטלפון: X".
+   Their phone number is their number, not ours —
+   never present it as if it belongs to Zap
+7. Sign off from "צוות זאפ דפי זהב"
+
+Keep it concise — no more than 15 lines. Warm but professional.
+
+CLIENT DATA:
+<span style="background:#bfdbfe;color:#1e3a5f;padding:1px 4px;border-radius:3px;">{client_card_json}</span></div>
+        <div class="prompt-annotation">
+          💬 <div>
+            Rule 6 is a bug fix baked into the prompt. The original version said "confirm their phone number" — and Claude wrote <strong>"פרטי הטלפון: 072-3977065"</strong>, which reads as if it's Zap's phone number. By explicitly saying "phrase it as questions TO the client" and "their phone number is their number, not ours," Claude now correctly writes <strong>"האם המספר שלך הוא 072-3977065?"</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout purple">
+        <div class="callout-icon">🔗</div>
+        <div><strong>[LINK_DRAFT_WEBSITE] and [LINK_DRAFT_MINISITE] are literal placeholders.</strong> Claude writes them as text in the message. In a production system, the pipeline would deploy the files to a server, get real URLs back, and replace these placeholders. In this prototype, a human pastes the real Vercel links manually.</div>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div> line 114</div>
+        <div class="code-body"><pre><span class="kw">return</span> <span class="fni">call_claude</span>(system, prompt, max_tokens=<span class="num">2048</span>)</pre></div>
+      </div>
+
+      <div class="plain-explain">max_tokens is 2048 here — lower than other calls — because the message is explicitly limited to 15 lines. 2048 tokens is about 1500 words, far more than needed for a short welcome message. Using a lower limit saves cost.</div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- DESIGN_SYSTEM_PROMPT -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="fn-card" id="fn-design" style="border-top: 4px solid var(--fn5);">
+    <div class="fn-card-header">
+      <div class="fn-number" style="background:var(--fn5);">5</div>
+      <div class="fn-header-info">
+        <div class="fn-name" style="color:var(--fn5);">DESIGN_SYSTEM_PROMPT &nbsp;(not a function — a constant)</div>
+        <div class="fn-desc">A long string stored at module level. Used as the system prompt for all 5 website pages. Defined once, referenced by name in generate_draft_website().</div>
+      </div>
+    </div>
+    <div class="fn-body">
+
+      <div class="callout blue">
+        <div class="callout-icon">📌</div>
+        <div><strong>Why is this a constant and not written inside the function?</strong><br>
+        Because it's identical for all 5 page calls. If it were inside <code>generate_draft_website()</code>, Python would recreate the same string 5 times in memory. More importantly, it's long and complex — keeping it at the top of the file makes it easy to find and edit without digging into a function.</div>
+      </div>
+
+      <p class="section-h">The full content of DESIGN_SYSTEM_PROMPT</p>
+      <div class="prompt-box system">
+        <div class="prompt-label">🟠 System Prompt — used for every website page generation</div>
+        <div class="prompt-content">You are an elite web designer at Zap Group creating a draft website for a new client.
+You produce distinctive, production-grade HTML that avoids generic "AI slop" aesthetics.
+
+DESIGN PRINCIPLES:
+- Typography: Use Google Fonts — choose distinctive, characterful fonts.
+  NEVER use generic fonts like Arial, Inter, Roboto, or system fonts.
+  Pair a bold display font (e.g., Heebo Black for Hebrew headers)
+  with a refined body font (e.g., Heebo Light/Regular for text).
+  Import via &lt;link&gt; tag from fonts.google.com.
+
+- Color: Commit to a cohesive palette using CSS variables.
+  Use a dominant color with sharp accents — not timid, evenly-distributed colors.
+  For an AC/cooling business: deep navy + electric cyan accent + clean whites.
+  Define all colors as CSS custom properties in :root.
+
+- Spatial Composition: Generous negative space. Asymmetric hero sections.
+  Grid-breaking elements where they surprise. Avoid cookie-cutter layouts.
+
+- Motion: CSS transitions on hover states. Subtle scroll animations via CSS only.
+  One well-orchestrated page load with staggered reveals (animation-delay).
+
+- Backgrounds &amp; Depth: Gradient meshes, subtle geometric patterns,
+  layered transparencies, or textured backgrounds. Never flat solid white.
+
+- Details: Custom styled buttons, smooth box-shadows with multiple layers,
+  border-radius choices that feel intentional, micro-interactions.
+
+CRITICAL RULES:
+- Every page must be a COMPLETE standalone HTML file with all CSS inline in a &lt;style&gt; tag
+- RTL direction (dir="rtl" lang="he") — all text in Hebrew
+- Mobile responsive with proper media queries
+- Navigation bar linking to: index.html, services.html, about.html, areas.html, contact.html
+- Footer with business name and phone
+- Use ACTUAL client data — never placeholder text like "Lorem ipsum"
+- The design should feel like it was crafted by a human designer, not generated by AI</div>
+        <div class="prompt-annotation">
+          💬 <div>
+            <strong>Why "CRITICAL RULES" in caps?</strong> Models pay attention to emphasis. Design principles are suggestions for style. Critical rules are hard constraints — things that will break the output if Claude ignores them. "Standalone HTML with inline CSS" is critical because these files open directly in a browser without a server, so external CSS files wouldn't load. "RTL" is critical because Hebrew text breaks without it.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- _FORMAT_IMAGES -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="fn-card" id="fn-format" style="border-top: 4px solid var(--fn6);">
+    <div class="fn-card-header">
+      <div class="fn-number" style="background:var(--fn6);">6</div>
+      <div class="fn-header-info">
+        <div class="fn-name" style="color:var(--fn6);">_format_images(images)</div>
+        <div class="fn-desc">A helper function — not called directly from main.py. Takes a list of image dicts and returns a text block Claude can use to write real &lt;img&gt; tags.</div>
+        <div class="fn-io">
+          <div class="fn-io-item"><span class="label">in</span><code>images: list</code> e.g. <code>[{"url": "https://...", "alt": "מזגן"}, ...]</code></div>
+          <div class="fn-io-item"><span class="label">out</span><code>str</code> (a formatted text block for the prompt)</div>
+        </div>
+      </div>
+    </div>
+    <div class="fn-body">
+
+      <div class="code-wrap">
+        <div class="code-header"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div> lines 138–145</div>
+        <div class="code-body"><pre><span class="kw">def</span> <span class="fni">_format_images</span>(images):
+    <span class="kw">if not</span> images:
+        <span class="kw">return</span> <span class="str">""</span>
+    lines = [<span class="str">"REAL IMAGES FROM CLIENT'S SITE (use these URLs directly in &lt;img&gt; tags):"</span>]
+    <span class="kw">for</span> i, img <span class="kw">in</span> <span class="fni">enumerate</span>(images, <span class="num">1</span>):
+        lines.<span class="fni">append</span>(<span class="str">f'  {i}. &lt;img src="{img["url"]}" alt="{img["alt"]}"&gt;'</span>)
+    <span class="kw">return</span> <span class="str">"\n"</span>.<span class="fni">join</span>(lines)</pre></div>
+      </div>
+
+      <table class="line-table">
+        <tr>
+          <td>if not images:
+    return ""</td>
+          <td><strong>Early exit if no images</strong>
+If collect_images() found nothing, this returns an empty string. The empty string gets injected into the prompt harmlessly — Claude won't see any image instructions and will skip the gallery section.</td>
+        </tr>
+        <tr>
+          <td>enumerate(images, 1)</td>
+          <td><strong>Loop with a counter starting at 1</strong>
+<code>enumerate(list)</code> gives you <code>(index, item)</code> pairs. The second argument <code>1</code> starts the counter at 1 instead of 0 — so the output is numbered "1, 2, 3..." not "0, 1, 2..."</td>
+        </tr>
+        <tr>
+          <td>f'  {i}. &lt;img src="{img["url"]}"...'</td>
+          <td><strong>Building ready-made HTML tags for Claude</strong>
+We give Claude complete <code>&lt;img&gt;</code> tags, not just URLs. This means Claude can paste them directly into HTML without guessing the syntax. The double quotes inside the f-string use single outer quotes to avoid conflict.</td>
+        </tr>
+        <tr>
+          <td>"\n".join(lines)</td>
+          <td><strong>Joining a list into a single string</strong>
+<code>lines</code> is a list of strings. <code>"\n".join(lines)</code> combines them with a newline between each — making a multi-line text block Claude can read. This is more readable in the prompt than a single long line.</td>
+        </tr>
+      </table>
+
+      <div class="plain-explain">
+        <strong>What Claude receives when images exist:</strong><br>
+        <code style="display:block;margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:13px;background:#f3f4f6;padding:12px;border-radius:6px;line-height:1.8;">
+        REAL IMAGES FROM CLIENT'S SITE (use these URLs directly in &lt;img&gt; tags):<br>
+          1. &lt;img src="https://imazganim.co.il/images/ac1.jpg" alt="מזגן"&gt;<br>
+          2. &lt;img src="https://imazganim.co.il/images/team.jpg" alt="צוות"&gt;
+        </code>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- GENERATE_DRAFT_WEBSITE -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="fn-card" id="fn-website" style="border-top: 4px solid var(--fn7);">
+    <div class="fn-card-header">
+      <div class="fn-number" style="background:var(--fn7);">7</div>
+      <div class="fn-header-info">
+        <div class="fn-name" style="color:var(--fn7);">generate_draft_website(client_card_json, images=None)</div>
+        <div class="fn-desc">Makes 5 separate API calls — one per page. Each call gets the same DESIGN_SYSTEM_PROMPT but a different page spec. Returns a dict of filename → HTML.</div>
+        <div class="fn-io">
+          <div class="fn-io-item"><span class="label">in</span><code>client_card_json: str</code></div>
+          <div class="fn-io-item"><span class="label">in</span><code>images: list</code> (optional)</div>
+          <div class="fn-io-item"><span class="label">out</span><code>dict</code> e.g. <code>{"index.html": "&lt;!DOCTYPE html&gt;...", "services.html": "..."}</code></div>
+        </div>
+      </div>
+    </div>
+    <div class="fn-body">
+
+      <div class="code-wrap">
+        <div class="code-header"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div> lines 148–203 — structure overview</div>
+        <div class="code-body"><pre><span class="kw">def</span> <span class="fni">generate_draft_website</span>(client_card_json, images=<span class="key2">None</span>):
+    pages = {}                                    <span class="cm"># will collect all 5 pages here</span>
+    images_block = <span class="fni">_format_images</span>(images <span class="kw">or</span> []) <span class="cm"># prepare image text for prompt</span>
+
+    page_specs = {
+        <span class="str">"index.html"</span>:    <span class="str">"Homepage — dramatic hero section..."</span>,
+        <span class="str">"services.html"</span>: <span class="str">"Services page — showcase all services..."</span>,
+        <span class="str">"about.html"</span>:    <span class="str">"About page — tell the business story..."</span>,
+        <span class="str">"areas.html"</span>:    <span class="str">"Service areas page — geographic coverage..."</span>,
+        <span class="str">"contact.html"</span>:  <span class="str">"Contact page — make it easy to reach out..."</span>,
+    }
+
+    <span class="kw">for</span> filename, description <span class="kw">in</span> page_specs.<span class="fni">items</span>():
+        prompt = <span class="str">f"""Create this page:
+{description}
+{images_block}
+CLIENT DATA:
+{client_card_json}"""</span>
+
+        html = <span class="fni">call_claude</span>(<span class="va">DESIGN_SYSTEM_PROMPT</span>, prompt, max_tokens=<span class="num">8192</span>)
+        <span class="kw">if</span> html.<span class="fni">startswith</span>(<span class="str">"```"</span>):
+            html = html.<span class="fni">split</span>(<span class="str">"\n"</span>, <span class="num">1</span>)[<span class="num">1</span>].<span class="fni">rsplit</span>(<span class="str">"```"</span>, <span class="num">1</span>)[<span class="num">0</span>]
+        pages[filename] = html
+
+    <span class="kw">return</span> pages</pre></div>
+      </div>
+
+      <table class="line-table">
+        <tr>
+          <td>pages = {}</td>
+          <td><strong>Empty dict to collect results</strong>
+This accumulates {"index.html": html, "services.html": html, ...} as the loop runs. Returned at the end.</td>
+        </tr>
+        <tr>
+          <td>images or []</td>
+          <td><strong>Handling None safely</strong>
+If <code>images</code> is None (not passed in), <code>None or []</code> evaluates to <code>[]</code>. Passing <code>None</code> to <code>_format_images</code> would crash; passing <code>[]</code> returns an empty string safely.</td>
+        </tr>
+        <tr>
+          <td>for filename, description in page_specs.items():</td>
+          <td><strong>Iterating over a dict</strong>
+<code>.items()</code> returns key-value pairs. Each loop gives you the filename ("index.html") and its spec ("Homepage — dramatic hero..."). Python unpacks them directly into two variables.</td>
+        </tr>
+        <tr>
+          <td>call_claude(DESIGN_SYSTEM_PROMPT, prompt, max_tokens=8192)</td>
+          <td><strong>Using the shared constant as system prompt</strong>
+Note that DESIGN_SYSTEM_PROMPT (the constant) goes in the system position, and the page-specific prompt goes in the user position. Claude has no memory between calls — the design consistency comes entirely from the same DESIGN_SYSTEM_PROMPT being used in every call.</td>
+        </tr>
+        <tr>
+          <td>pages[filename] = html</td>
+          <td><strong>Storing the result in the dict</strong>
+After each API call, we store the HTML under the filename key. By the time the loop finishes, pages contains all 5 pages.</td>
+        </tr>
+      </table>
+
+      <p class="section-h">What the user prompt looks like for each page</p>
+      <div class="prompt-box user">
+        <div class="prompt-label">🔵 User Prompt — example for index.html</div>
+        <div class="prompt-content">Create this page for a business website:
+
+<span style="background:#bfdbfe;color:#1e3a5f;padding:1px 4px;border-radius:3px;">Homepage — the most important page. Include:
+- A dramatic hero section with the business name, a compelling Hebrew tagline,
+  and a large call-to-action button with the phone number
+- A brief "why choose us" section with 3-4 key selling points as icon-style cards
+- A testimonial highlight
+- If real images are provided, use 1-2 of them in the hero or as background</span>
+
+REAL IMAGES FROM CLIENT'S SITE (use these URLs directly in &lt;img&gt; tags):
+  1. &lt;img src="https://imazganim.co.il/images/ac1.jpg" alt="מזגן"&gt;
+  ...
+
+Use the client data below for ALL content — real business info only.
+Output ONLY the complete HTML file, no explanation.
+
+CLIENT DATA:
+<span style="background:#bfdbfe;color:#1e3a5f;padding:1px 4px;border-radius:3px;">{"business_name": "יגאל מזגנים", "phone": "072-3977065", ...}</span></div>
+        <div class="prompt-annotation">
+          💬 <div>Three things get injected: the page-specific <strong>description</strong> (changes each loop), the <strong>images block</strong> (same for all pages), and the <strong>client JSON</strong> (same for all pages). The description is what differentiates homepage from services page from about page.</div>
+        </div>
+      </div>
+
+      <div class="callout yellow">
+        <div class="callout-icon">🔢</div>
+        <div><strong>This function makes 5 API calls total</strong> — one per page. Each call costs time and money. We could have asked Claude to generate all 5 pages in one call, but a full 5-page website would exceed 8192 tokens and get cut off. Separate calls also let each page be fully formed and consistent.</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- GENERATE_DRAFT_MINISITE -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="fn-card" id="fn-minisite" style="border-top: 4px solid var(--fn8);">
+    <div class="fn-card-header">
+      <div class="fn-number" style="background:var(--fn8);">8</div>
+      <div class="fn-header-info">
+        <div class="fn-name" style="color:var(--fn8);">generate_draft_minisite(client_card_json, images=None)</div>
+        <div class="fn-desc">One API call. Generates a single HTML page that looks like a Dapei Zahav business listing. Different system prompt, different visual target.</div>
+        <div class="fn-io">
+          <div class="fn-io-item"><span class="label">in</span><code>client_card_json: str</code></div>
+          <div class="fn-io-item"><span class="label">in</span><code>images: list</code> (optional)</div>
+          <div class="fn-io-item"><span class="label">out</span><code>str</code> (one complete HTML file)</div>
+        </div>
+      </div>
+    </div>
+    <div class="fn-body">
+
+      <div class="callout green">
+        <div class="callout-icon">🔁</div>
+        <div><strong>Compare to generate_draft_website:</strong> That function uses DESIGN_SYSTEM_PROMPT (custom brand design). This function defines its own system prompt inline — because the visual target is completely different. Dapei Zahav has a specific look: yellow/gold, directory-style, structured.</div>
+      </div>
+
+      <p class="section-h">The system prompt — defined inline, not a constant</p>
+      <div class="prompt-box system">
+        <div class="prompt-label">🟠 System Prompt</div>
+        <div class="prompt-content">You are an elite web designer creating a Dapei Zahav (דפי זהב) minisite listing.
+The design should closely match the real d.co.il business listing style —
+structured, directory-style, but polished and professional.
+
+DESIGN PRINCIPLES:
+- Match Dapei Zahav's visual identity: yellow/gold (#FFD700, #FFC107) accent color
+  with white backgrounds and dark text
+- Use Google Fonts — Heebo for Hebrew text
+- Clean card-based layout with subtle shadows
+- Structured sections with clear visual hierarchy
+- Contact buttons should be prominent (green for WhatsApp, blue for phone)
+- Mobile responsive
+- RTL direction (dir="rtl" lang="he")
+- Include a "דפי זהב" branded header bar at the top
+- The page should look like it belongs on d.co.il — professional directory aesthetic</div>
+        <div class="prompt-annotation">
+          💬 <div>The design principles here are completely different from DESIGN_SYSTEM_PROMPT. There's no mention of "asymmetric hero sections" or "gradient meshes" — those would look wrong on a directory listing. Instead: structured, yellow/gold, professional directory aesthetic. Same pattern, different persona.</div>
+        </div>
+      </div>
+
+      <p class="section-h">The user prompt</p>
+      <div class="prompt-box user">
+        <div class="prompt-label">🔵 User Prompt</div>
+        <div class="prompt-content">Create an HTML page simulating a Dapei Zahav (דפי זהב) business listing/minisite.
+
+Sections to include (matching real d.co.il format):
+1. Header bar with דפי זהב branding (yellow/gold)
+2. Business hero: name, category badge, location, availability status
+3. Contact bar: phone button, WhatsApp button, "יצירת קשר" button
+4. "אודות" (About) — business description paragraph
+5. "חוות דעת גולשים" (Reviews) — empty state with star rating display
+6. "גלריה" (Gallery) — use the real client images as &lt;img&gt; tags with
+   object-fit:cover, hover zoom effect, and caption overlay.
+   Do NOT use placeholder boxes.
+7. "על השירות" (Service Details) — service categories and service areas
+8. "שעות פעילות" (Business Hours) — clean schedule display
+9. "יצירת קשר" (Contact Form) — styled form: name, email, phone, message
+10. Footer with דפי זהב branding
+
+Use ACTUAL client data — no placeholder text.
+<span style="background:#bfdbfe;color:#1e3a5f;padding:1px 4px;border-radius:3px;">{images_block}</span>
+Output ONLY the complete HTML file.
+
+CLIENT DATA:
+<span style="background:#bfdbfe;color:#1e3a5f;padding:1px 4px;border-radius:3px;">{client_card_json}</span></div>
+        <div class="prompt-annotation">
+          💬 <div>
+            <strong>"Do NOT use placeholder boxes"</strong> was added after the first run produced empty gray boxes in the gallery instead of real images. Negative constraints often work better than positive ones — "use real images" alone wasn't enough; "do NOT use placeholder boxes" directly targets the failure mode.
+          </div>
+        </div>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header"><div class="code-dot" style="background:#ff5f57"></div><div class="code-dot" style="background:#febc2e"></div><div class="code-dot" style="background:#28c840"></div> lines 246–249</div>
+        <div class="code-body"><pre>html = <span class="fni">call_claude</span>(system, prompt, max_tokens=<span class="num">8192</span>)
+<span class="kw">if</span> html.<span class="fni">startswith</span>(<span class="str">"```"</span>):
+    html = html.<span class="fni">split</span>(<span class="str">"\n"</span>, <span class="num">1</span>)[<span class="num">1</span>].<span class="fni">rsplit</span>(<span class="str">"```"</span>, <span class="num">1</span>)[<span class="num">0</span>]
+<span class="kw">return</span> html</pre></div>
+      </div>
+
+      <div class="plain-explain">Same markdown strip pattern as elsewhere — Claude sometimes wraps HTML in backticks even when told not to. The strip handles it defensively.</div>
+    </div>
+  </div>
+
+
+  <!-- Final summary -->
+  <div style="background:var(--text);color:white;border-radius:14px;padding:36px 40px;margin-top:8px;">
+    <h3 style="font-size:1.1rem;margin-bottom:20px;color:#a5b4fc;">Every function in llm.py at a glance</h3>
+    <table style="width:100%;font-size:13.5px;border-collapse:collapse;">
+      <tr style="border-bottom:1px solid #374151;">
+        <td style="padding:12px 16px;color:#9ca3af;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Function</td>
+        <td style="padding:12px 16px;color:#9ca3af;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">System prompt says Claude is...</td>
+        <td style="padding:12px 16px;color:#9ca3af;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">User prompt contains...</td>
+        <td style="padding:12px 16px;color:#9ca3af;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Returns</td>
+      </tr>
+      <tr style="border-bottom:1px solid #374151;">
+        <td style="padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#a5b4fc;">extract_client_card</td>
+        <td style="padding:12px 16px;color:#d1d5db;">A data extraction assistant. Return ONLY JSON.</td>
+        <td style="padding:12px 16px;color:#d1d5db;">JSON schema + all scraped website text</td>
+        <td style="padding:12px 16px;color:#d1d5db;">JSON string</td>
+      </tr>
+      <tr style="border-bottom:1px solid #374151;">
+        <td style="padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#a5b4fc;">generate_client_card_hebrew</td>
+        <td style="padding:12px 16px;color:#d1d5db;">A content writer for Zap. Write professional Hebrew.</td>
+        <td style="padding:12px 16px;color:#d1d5db;">Section structure + client JSON</td>
+        <td style="padding:12px 16px;color:#d1d5db;">Hebrew Markdown</td>
+      </tr>
+      <tr style="border-bottom:1px solid #374151;">
+        <td style="padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#a5b4fc;">generate_welcome_message</td>
+        <td style="padding:12px 16px;color:#d1d5db;">A friendly customer success rep. Warm tone.</td>
+        <td style="padding:12px 16px;color:#d1d5db;">7 message rules + client JSON</td>
+        <td style="padding:12px 16px;color:#d1d5db;">Hebrew message</td>
+      </tr>
+      <tr style="border-bottom:1px solid #374151;">
+        <td style="padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#a5b4fc;">generate_draft_website ×5</td>
+        <td style="padding:12px 16px;color:#d1d5db;">Elite web designer. (DESIGN_SYSTEM_PROMPT)</td>
+        <td style="padding:12px 16px;color:#d1d5db;">Page spec + images + client JSON</td>
+        <td style="padding:12px 16px;color:#d1d5db;">HTML file per page</td>
+      </tr>
+      <tr>
+        <td style="padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#a5b4fc;">generate_draft_minisite</td>
+        <td style="padding:12px 16px;color:#d1d5db;">Elite designer. Match d.co.il yellow/gold style.</td>
+        <td style="padding:12px 16px;color:#d1d5db;">10 section specs + images + client JSON</td>
+        <td style="padding:12px 16px;color:#d1d5db;">Single HTML file</td>
+      </tr>
+    </table>
+  </div>
+
+  <div style="text-align:center;padding:40px 0 0;color:var(--muted);font-size:13px;">
+    <a href="code-explainer.html" style="color:#6366f1;text-decoration:none;">← Code Explainer</a>
+    &nbsp;&nbsp;|&nbsp;&nbsp;
+    <a href="code-walkthrough.html" style="color:#6366f1;text-decoration:none;">Code Walkthrough →</a>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Full Code Deep Dive — All 4 Files</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+
+    --main-color: #58a6ff;
+    --scraper-color: #3fb950;
+    --llm-color: #bc8cff;
+    --crm-color: #d29922;
+
+    --system-bg: #2a1a00;
+    --system-border: #fb923c;
+    --user-bg: #001a33;
+    --user-border: #3b82f6;
+
+    --kw: #ff7b72;
+    --str: #a5d6ff;
+    --fni: #d2a8ff;
+    --num: #79c0ff;
+    --cm: #484f58;
+    --va: #e6edf3;
+    --key2: #79c0ff;
+    --dec: #ffa657;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  /* ── Nav ── */
+  .topnav {
+    position: sticky; top: 0; z-index: 200;
+    background: rgba(13,17,23,0.97);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .topnav-left { display: flex; align-items: center; gap: 12px; }
+  .back-link { color: var(--muted); text-decoration: none; font-size: 13px; transition: color .2s; }
+  .back-link:hover { color: var(--main-color); }
+  .topnav-title { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted); }
+  .file-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .file-pill {
+    padding: 4px 12px; border-radius: 20px; font-size: 12px;
+    font-family: 'JetBrains Mono', monospace; font-weight: 700;
+    text-decoration: none; border: 1px solid; transition: all .2s;
+  }
+  .fp-main   { color: var(--main-color);    border-color: var(--main-color);    }
+  .fp-scraper{ color: var(--scraper-color); border-color: var(--scraper-color); }
+  .fp-llm    { color: var(--llm-color);     border-color: var(--llm-color);     }
+  .fp-crm    { color: var(--crm-color);     border-color: var(--crm-color);     }
+  .file-pill:hover { background: rgba(255,255,255,0.08); }
+
+  /* ── Layout ── */
+  .page { max-width: 100%; margin: 0 auto; padding: 48px 48px 80px; }
+
+  /* ── Hero ── */
+  .hero {
+    border-radius: 14px;
+    padding: 44px 48px;
+    margin-bottom: 56px;
+    background: linear-gradient(135deg, #0d2137 0%, #1a0d2e 100%);
+    border: 1px solid var(--border);
+  }
+  .hero-tag {
+    display: inline-block; padding: 3px 12px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--main-color);
+    border: 1px solid var(--main-color);
+    background: rgba(88,166,255,0.08); margin-bottom: 18px;
+  }
+  .hero h1 { font-size: 2rem; font-weight: 800; margin-bottom: 12px; }
+  .hero p { color: var(--muted); font-size: 14px; }
+
+  /* ── File section header ── */
+  .file-section { margin-bottom: 80px; }
+  .file-header {
+    display: flex; align-items: center; gap: 18px;
+    padding: 22px 28px; border-radius: 12px; border: 1px solid;
+    margin-bottom: 36px;
+  }
+  .fh-main    { background: rgba(88,166,255,0.06);  border-color: var(--main-color);    }
+  .fh-scraper { background: rgba(63,185,80,0.06);   border-color: var(--scraper-color); }
+  .fh-llm     { background: rgba(188,140,255,0.06); border-color: var(--llm-color);     }
+  .fh-crm     { background: rgba(210,153,34,0.06);  border-color: var(--crm-color);     }
+  .file-icon { font-size: 2rem; flex-shrink: 0; }
+  .file-header h2 { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; font-weight: 700; margin-bottom: 5px; }
+  .file-header p { color: var(--muted); font-size: 13px; }
+
+  /* ── Function card ── */
+  .fn-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 40px;
+    overflow: hidden;
+  }
+  .fn-card-top {
+    padding: 18px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; gap: 14px;
+  }
+  .fn-badge {
+    padding: 3px 12px; border-radius: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; font-weight: 700;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .fn-card-top h3 { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700; margin-bottom: 5px; }
+  .fn-card-top p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+  .fn-io-row {
+    display: flex; gap: 20px; margin-top: 10px; flex-wrap: wrap;
+  }
+  .fn-io-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .fn-io-item .iolabel {
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .fn-io-item code {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    background: var(--surface2); padding: 2px 8px; border-radius: 4px;
+    color: var(--dec);
+  }
+
+  /* ── Full code + annotations side by side ── */
+  .code-annotate {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--border);
+  }
+  @media (max-width: 800px) {
+    .code-annotate { grid-template-columns: 1fr; }
+  }
+
+  .code-panel {
+    background: #0d1117;
+    border-right: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .code-panel-header {
+    padding: 8px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--muted);
+    display: flex; gap: 8px; align-items: center;
+  }
+  .cdot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  pre.full-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--va);
+    padding: 20px 20px 20px 0;
+    white-space: pre;
+    counter-reset: line;
+  }
+  .code-line {
+    display: flex;
+  }
+  .ln {
+    width: 40px; min-width: 40px;
+    text-align: right; padding-right: 16px;
+    color: #484f58; user-select: none;
+    font-size: 12px; line-height: 1.75;
+    flex-shrink: 0;
+  }
+  .lc { flex: 1; padding-right: 20px; line-height: 1.75; }
+
+  .annot-panel {
+    padding: 0;
+    overflow-y: auto;
+  }
+  .annot-panel-header {
+    padding: 8px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px; color: var(--muted);
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .annot-list { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+  .annot-item {
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    font-size: 13px;
+  }
+  .annot-item-code {
+    padding: 7px 12px;
+    background: #0d1117;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--dec);
+    border-bottom: 1px solid var(--border);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .annot-item-text {
+    padding: 10px 14px;
+    color: #c9d1d9;
+    line-height: 1.65;
+    font-size: 13px;
+  }
+  .annot-item-text strong { color: var(--text); }
+  .annot-item.highlight .annot-item-code { color: var(--num); border-left: 3px solid var(--num); }
+  .annot-item.important .annot-item-code { color: var(--dec); border-left: 3px solid var(--dec); }
+  .annot-item.warn .annot-item-code { color: #f85149; border-left: 3px solid #f85149; }
+  .annot-item.good .annot-item-code { color: var(--scraper-color); border-left: 3px solid var(--scraper-color); }
+
+  /* ── Prompt boxes ── */
+  .prompt-section { padding: 24px; border-top: 1px solid var(--border); }
+  .prompt-section h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 14px; }
+
+  .prompt-box { border-radius: 8px; overflow: hidden; border: 2px solid; margin-bottom: 14px; }
+  .prompt-box.system { border-color: var(--system-border); }
+  .prompt-box.user   { border-color: var(--user-border); }
+  .prompt-box-label {
+    padding: 8px 16px;
+    font-size: 11px; font-weight: 800;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .prompt-box.system .prompt-box-label { background: var(--system-border); color: white; }
+  .prompt-box.user   .prompt-box-label { background: var(--user-border); color: white; }
+  .prompt-box-label span { font-weight: 400; text-transform: none; letter-spacing: 0; opacity: .85; font-size: 12px; }
+  .prompt-text {
+    padding: 16px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px; line-height: 1.75;
+    white-space: pre-wrap;
+  }
+  .prompt-box.system .prompt-text { background: var(--system-bg); color: #fed7aa; }
+  .prompt-box.user   .prompt-text { background: var(--user-bg);   color: #bfdbfe; }
+  .inject { background: rgba(255,255,255,0.15); padding: 1px 4px; border-radius: 3px; color: #f9e2af; font-weight: 700; }
+  .prompt-note {
+    padding: 10px 16px;
+    font-size: 12.5px;
+    border-top: 1px solid;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .prompt-box.system .prompt-note { border-color: #7c2d12; background: rgba(251,146,60,0.06); }
+  .prompt-box.user   .prompt-note { border-color: #1e3a5f; background: rgba(59,130,246,0.06); }
+
+  /* ── Callout ── */
+  .callout {
+    margin: 0 24px 20px;
+    padding: 14px 18px; border-radius: 8px;
+    font-size: 13px; line-height: 1.65;
+    display: flex; gap: 12px; align-items: flex-start;
+    border: 1px solid;
+  }
+  .callout.blue   { background: rgba(88,166,255,0.07);   border-color: rgba(88,166,255,0.3); }
+  .callout.orange { background: rgba(210,153,34,0.07);   border-color: rgba(210,153,34,0.3); }
+  .callout.green  { background: rgba(63,185,80,0.07);    border-color: rgba(63,185,80,0.3); }
+  .callout.purple { background: rgba(188,140,255,0.07);  border-color: rgba(188,140,255,0.3); }
+  .callout-icon { font-size: 16px; flex-shrink: 0; }
+
+  /* syntax */
+  .kw  { color: #ff7b72; }
+  .str { color: #a5d6ff; }
+  .fni { color: #d2a8ff; }
+  .num { color: #79c0ff; }
+  .cm  { color: #484f58; font-style: italic; }
+  .va  { color: #e6edf3; }
+  .k2  { color: #79c0ff; }
+  .dec { color: #ffa657; }
+  .fst { color: #f9e2af; } /* f-string variable */
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="topnav-left">
+    <a href="code-explainer.html" class="back-link">← Code Explainer</a>
+    <span class="topnav-title">Full Code Deep Dive</span>
+  </div>
+  <div class="file-pills">
+    <a href="#main-py"    class="file-pill fp-main">main.py</a>
+    <a href="#scraper-py" class="file-pill fp-scraper">scraper.py</a>
+    <a href="#llm-py"     class="file-pill fp-llm">llm.py</a>
+    <a href="#crm-py"     class="file-pill fp-crm">crm.py</a>
+  </div>
+</nav>
+
+<div class="page">
+
+<div class="hero">
+  <div class="hero-tag">Full Code</div>
+  <h1>Every function. Full code. Every line explained.</h1>
+  <p>All 4 files — complete source code on the left, line-by-line annotations on the right. Nothing skipped.</p>
+</div>
+
+
+<!-- RUNTIME FLOW MAP -->
+<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;margin-bottom:48px;">
+  <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;">Read this first</div>
+  <div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:6px;">What actually happens when you run <code style="font-family:'JetBrains Mono',monospace;font-size:14px;background:var(--surface2);padding:2px 8px;border-radius:4px;">python main.py</code></div>
+  <p style="color:var(--muted);font-size:13px;margin-bottom:28px;">Every function call below is a real step in the running code. The arrows show which file each function lives in and what it hands off to next.</p>
+
+  <div style="display:flex;flex-direction:column;gap:0;">
+
+    <!-- Step 1 -->
+    <div style="display:flex;gap:0;align-items:stretch;">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:20px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--main-color);color:#0d1117;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+        <div style="width:2px;flex:1;background:var(--border);margin:4px 0;"></div>
+      </div>
+      <div style="padding-bottom:24px;flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--main-color);font-weight:700;">main()</code>
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(88,166,255,0.1);border:1px solid var(--main-color);color:var(--main-color);font-weight:700;">main.py</span>
+        </div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.65;">Python runs this first. <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">argparse</code> reads the command line arguments — <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">--url</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">--name</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">--phone</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">--location</code>. Decides which mode to run: discovery or direct URL.</p>
+      </div>
+    </div>
+
+    <!-- Step 2a -->
+    <div style="display:flex;gap:0;align-items:stretch;">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:20px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--scraper-color);color:#0d1117;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2a</div>
+        <div style="width:2px;flex:1;background:var(--border);margin:4px 0;"></div>
+      </div>
+      <div style="padding-bottom:24px;flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--scraper-color);font-weight:700;">discover_assets(name, phone, location)</code>
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(63,185,80,0.1);border:1px solid var(--scraper-color);color:var(--scraper-color);font-weight:700;">scraper.py</span>
+          <span style="font-size:11px;color:var(--muted);">— only in discovery mode (--name)</span>
+        </div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.65;">Called FROM main.py, lives IN scraper.py. Searches DuckDuckGo for the client's URLs, then calls <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">scrape_url()</code> on each result to verify the phone number appears. Returns a list of verified URLs.</p>
+        <div style="margin-top:8px;padding:10px 14px;background:#0d1117;border-radius:6px;border-left:3px solid var(--scraper-color);">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">internally also calls:</div>
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--scraper-color);">_phone_variants(phone)</code><span style="font-size:12px;color:var(--muted);"> → generates 4 phone formats for matching</span><br>
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--scraper-color);">scrape_url(url)</code><span style="font-size:12px;color:var(--muted);"> → fetches each candidate page to verify</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2b -->
+    <div style="display:flex;gap:0;align-items:stretch;">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:20px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--scraper-color);color:#0d1117;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2b</div>
+        <div style="width:2px;flex:1;background:var(--border);margin:4px 0;"></div>
+      </div>
+      <div style="padding-bottom:24px;flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--scraper-color);font-weight:700;">scrape_client(base_url)  /  scrape_multiple(urls)</code>
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(63,185,80,0.1);border:1px solid var(--scraper-color);color:var(--scraper-color);font-weight:700;">scraper.py</span>
+        </div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.65;">Called FROM main.py, lives IN scraper.py. Crawls the client's website(s) — homepage + all internal pages. Calls <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">scrape_url()</code> on each page. Returns a dict: <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">{"url": "page text", ...}</code></p>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div style="display:flex;gap:0;align-items:stretch;">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:20px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--main-color);color:#0d1117;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
+        <div style="width:2px;flex:1;background:var(--border);margin:4px 0;"></div>
+      </div>
+      <div style="padding-bottom:24px;flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--main-color);font-weight:700;">run_pipeline(scraped, base_url)</code>
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(88,166,255,0.1);border:1px solid var(--main-color);color:var(--main-color);font-weight:700;">main.py</span>
+        </div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.65;">Back in main.py. Takes the scraped dict from step 2 and runs all remaining steps in order. This is the orchestrator — it doesn't do the work itself, it calls functions from scraper.py, llm.py, and crm.py.</p>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div style="display:flex;gap:0;align-items:stretch;">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:20px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--scraper-color);color:#0d1117;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">4</div>
+        <div style="width:2px;flex:1;background:var(--border);margin:4px 0;"></div>
+      </div>
+      <div style="padding-bottom:24px;flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--scraper-color);font-weight:700;">collect_images(base_url)</code>
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(63,185,80,0.1);border:1px solid var(--scraper-color);color:var(--scraper-color);font-weight:700;">scraper.py</span>
+        </div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.65;">Called FROM run_pipeline() in main.py, lives IN scraper.py. Crawls the client's site looking for .jpg/.png/.webp images hosted on their own domain. Returns a list of <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">[{"url": "...", "alt": "..."}]</code>. These get injected into the LLM prompts later.</p>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div style="display:flex;gap:0;align-items:stretch;">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:20px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--llm-color);color:#0d1117;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">5</div>
+        <div style="width:2px;flex:1;background:var(--border);margin:4px 0;"></div>
+      </div>
+      <div style="padding-bottom:24px;flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--llm-color);font-weight:700;">extract_client_card(raw_text)</code>
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(188,140,255,0.1);border:1px solid var(--llm-color);color:var(--llm-color);font-weight:700;">llm.py</span>
+        </div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.65;">Called FROM run_pipeline(), lives IN llm.py. Sends all scraped text to Claude. Gets back a JSON string with business name, phone, services, etc. Saved to <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">output/client_card.json</code>. The same JSON is reused by every step after this.</p>
+        <div style="margin-top:8px;padding:10px 14px;background:#0d1117;border-radius:6px;border-left:3px solid var(--llm-color);">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">internally calls:</div>
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--llm-color);">call_claude(system, prompt, max_tokens=4096)</code><span style="font-size:12px;color:var(--muted);"> → the actual API call</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div style="display:flex;gap:0;align-items:stretch;">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:20px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--llm-color);color:#0d1117;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">6</div>
+        <div style="width:2px;flex:1;background:var(--border);margin:4px 0;"></div>
+      </div>
+      <div style="padding-bottom:24px;flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--llm-color);font-weight:700;">generate_client_card_hebrew(client_card_json)</code>
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(188,140,255,0.1);border:1px solid var(--llm-color);color:var(--llm-color);font-weight:700;">llm.py</span>
+        </div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.65;">Takes the JSON from step 5, sends it to Claude again with a different system prompt. Claude reformats it as a readable Hebrew document for the Zap producer. Saved to <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">output/client_card.md</code>.</p>
+      </div>
+    </div>
+
+    <!-- Step 7 -->
+    <div style="display:flex;gap:0;align-items:stretch;">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:20px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--llm-color);color:#0d1117;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">7</div>
+        <div style="width:2px;flex:1;background:var(--border);margin:4px 0;"></div>
+      </div>
+      <div style="padding-bottom:24px;flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--llm-color);font-weight:700;">generate_draft_website(client_card_json, images)</code>
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(188,140,255,0.1);border:1px solid var(--llm-color);color:var(--llm-color);font-weight:700;">llm.py</span>
+        </div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.65;">Loops through 5 page specs. Makes <strong style="color:var(--text);">5 separate Claude API calls</strong> — one per page. Each call gets DESIGN_SYSTEM_PROMPT as the system prompt and the page spec + client JSON as the user prompt. Returns a dict of 5 HTML files. Saved to <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">output/website/</code>.</p>
+        <div style="margin-top:8px;padding:10px 14px;background:#0d1117;border-radius:6px;border-left:3px solid var(--llm-color);">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">internally calls:</div>
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--llm-color);">_format_images(images)</code><span style="font-size:12px;color:var(--muted);"> → converts image list to prompt text</span><br>
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--llm-color);">call_claude(...)</code><span style="font-size:12px;color:var(--muted);"> × 5 → one API call per page</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 8 -->
+    <div style="display:flex;gap:0;align-items:stretch;">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:20px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--llm-color);color:#0d1117;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">8</div>
+        <div style="width:2px;flex:1;background:var(--border);margin:4px 0;"></div>
+      </div>
+      <div style="padding-bottom:24px;flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--llm-color);font-weight:700;">generate_draft_minisite(client_card_json, images)</code>
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(188,140,255,0.1);border:1px solid var(--llm-color);color:var(--llm-color);font-weight:700;">llm.py</span>
+        </div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.65;">One Claude API call. Generates a single HTML file styled like a Dapei Zahav directory listing. Different system prompt than the website — targets yellow/gold aesthetic. Saved to <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">output/minisite/index.html</code>.</p>
+      </div>
+    </div>
+
+    <!-- Step 9 -->
+    <div style="display:flex;gap:0;align-items:stretch;">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:20px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--llm-color);color:#0d1117;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">9</div>
+        <div style="width:2px;flex:1;background:var(--border);margin:4px 0;"></div>
+      </div>
+      <div style="padding-bottom:24px;flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--llm-color);font-weight:700;">generate_welcome_message(client_card_json)</code>
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(188,140,255,0.1);border:1px solid var(--llm-color);color:var(--llm-color);font-weight:700;">llm.py</span>
+        </div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.65;">One Claude API call. Writes the Hebrew welcome message for the client. <strong style="color:var(--text);">Deliberately runs AFTER steps 7 and 8</strong> — because the message contains links to the website and minisite drafts that must exist first. Saved to <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">output/welcome_message.md</code>.</p>
+      </div>
+    </div>
+
+    <!-- Step 10 -->
+    <div style="display:flex;gap:0;align-items:stretch;">
+      <div style="display:flex;flex-direction:column;align-items:center;margin-right:20px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--crm-color);color:#0d1117;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">10</div>
+        <div style="width:2px;background:transparent;margin:4px 0;"></div>
+      </div>
+      <div style="padding-bottom:8px;flex:1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--crm-color);font-weight:700;">log_to_crm(client_card_json, welcome_msg, OUTPUT_DIR)</code>
+          <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:rgba(210,153,34,0.1);border:1px solid var(--crm-color);color:var(--crm-color);font-weight:700;">crm.py</span>
+        </div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.65;">Called FROM run_pipeline(), lives IN crm.py. Builds a structured dict with crm_id, timestamps, actions taken, and a preview of the welcome message. Saves to <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">output/crm_log.json</code>. In production: <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">requests.post()</code> to Salesforce.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     MAIN.PY
+════════════════════════════════════════════════════ -->
+<div class="file-section" id="main-py">
+  <div class="file-header fh-main">
+    <div class="file-icon">🚀</div>
+    <div>
+      <h2 style="color:var(--main-color)">main.py</h2>
+      <p>Entry point. Handles CLI arguments and orchestrates the full pipeline. 4 functions + module-level constants.</p>
+    </div>
+  </div>
+
+  <!-- ensure_output_dirs -->
+  <div class="fn-card">
+    <div class="fn-card-top">
+      <div class="fn-badge" style="background:rgba(88,166,255,0.1);color:var(--main-color);border:1px solid var(--main-color)">main.py</div>
+      <div>
+        <h3>ensure_output_dirs()</h3>
+        <p>Creates the output folders before anything tries to write files. Called once at startup.</p>
+        <div class="fn-io-row">
+          <div class="fn-io-item"><span class="iolabel">in</span><code>nothing</code></div>
+          <div class="fn-io-item"><span class="iolabel">out</span><code>nothing — side effect only</code></div>
+        </div>
+      </div>
+    </div>
+    <div class="code-annotate">
+      <div class="code-panel">
+        <div class="code-panel-header"><span class="cdot" style="background:#ff5f57"></span><span class="cdot" style="background:#febc2e"></span><span class="cdot" style="background:#28c840"></span> full code</div>
+        <pre class="full-code"><div class="code-line"><span class="ln">37</span><span class="lc"><span class="kw">def</span> <span class="fni">ensure_output_dirs</span>():</span></div><div class="code-line"><span class="ln">38</span><span class="lc">    <span class="va">os</span>.<span class="fni">makedirs</span>(</span></div><div class="code-line"><span class="ln">39</span><span class="lc">        <span class="va">os</span>.<span class="va">path</span>.<span class="fni">join</span>(<span class="va">OUTPUT_DIR</span>, <span class="str">"website"</span>),</span></div><div class="code-line"><span class="ln">40</span><span class="lc">        exist_ok=<span class="k2">True</span></span></div><div class="code-line"><span class="ln">41</span><span class="lc">    )</span></div><div class="code-line"><span class="ln">42</span><span class="lc">    <span class="va">os</span>.<span class="fni">makedirs</span>(</span></div><div class="code-line"><span class="ln">43</span><span class="lc">        <span class="va">os</span>.<span class="va">path</span>.<span class="fni">join</span>(<span class="va">OUTPUT_DIR</span>, <span class="str">"minisite"</span>),</span></div><div class="code-line"><span class="ln">44</span><span class="lc">        exist_ok=<span class="k2">True</span></span></div><div class="code-line"><span class="ln">45</span><span class="lc">    )</span></div></pre>
+      </div>
+      <div class="annot-panel">
+        <div class="annot-panel-header">Line by line</div>
+        <div class="annot-list">
+          <div class="annot-item">
+            <div class="annot-item-code">os.makedirs(...)</div>
+            <div class="annot-item-text"><strong>Creates a directory including any missing parent directories.</strong> Like creating "output/website" — if "output" doesn't exist yet, it creates that too.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">os.path.join(OUTPUT_DIR, "website")</div>
+            <div class="annot-item-text"><strong>Builds the full path safely.</strong> OUTPUT_DIR is defined at module level as the absolute path to the output folder. join() adds "website" onto it correctly for any OS (Mac/Windows use different slash directions).</div>
+          </div>
+          <div class="annot-item highlight">
+            <div class="annot-item-code">exist_ok=True</div>
+            <div class="annot-item-text"><strong>Don't crash if folder already exists.</strong> Without this, running the pipeline a second time would throw an error because the folder is already there. With it, makedirs silently does nothing if the folder exists.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- save_file -->
+  <div class="fn-card">
+    <div class="fn-card-top">
+      <div class="fn-badge" style="background:rgba(88,166,255,0.1);color:var(--main-color);border:1px solid var(--main-color)">main.py</div>
+      <div>
+        <h3>save_file(path, content)</h3>
+        <p>Writes any string to a file inside the output directory. Used for every generated file — HTML, JSON, Markdown.</p>
+        <div class="fn-io-row">
+          <div class="fn-io-item"><span class="iolabel">in</span><code>path: str</code> relative path e.g. "website/index.html"</div>
+          <div class="fn-io-item"><span class="iolabel">in</span><code>content: str</code> the file contents</div>
+          <div class="fn-io-item"><span class="iolabel">out</span><code>nothing — writes to disk</code></div>
+        </div>
+      </div>
+    </div>
+    <div class="code-annotate">
+      <div class="code-panel">
+        <div class="code-panel-header"><span class="cdot" style="background:#ff5f57"></span><span class="cdot" style="background:#febc2e"></span><span class="cdot" style="background:#28c840"></span> full code</div>
+        <pre class="full-code"><div class="code-line"><span class="ln">48</span><span class="lc"><span class="kw">def</span> <span class="fni">save_file</span>(path, content):</span></div><div class="code-line"><span class="ln">49</span><span class="lc">    <span class="va">full_path</span> = <span class="va">os</span>.<span class="va">path</span>.<span class="fni">join</span>(<span class="va">OUTPUT_DIR</span>, path)</span></div><div class="code-line"><span class="ln">50</span><span class="lc">    <span class="kw">with</span> <span class="fni">open</span>(full_path, <span class="str">"w"</span>, encoding=<span class="str">"utf-8"</span>) <span class="kw">as</span> <span class="va">f</span>:</span></div><div class="code-line"><span class="ln">51</span><span class="lc">        <span class="va">f</span>.<span class="fni">write</span>(content)</span></div><div class="code-line"><span class="ln">52</span><span class="lc">    <span class="fni">print</span>(<span class="str">f"  Saved: output/{path}"</span>)</span></div></pre>
+      </div>
+      <div class="annot-panel">
+        <div class="annot-panel-header">Line by line</div>
+        <div class="annot-list">
+          <div class="annot-item">
+            <div class="annot-item-code">full_path = os.path.join(OUTPUT_DIR, path)</div>
+            <div class="annot-item-text"><strong>Converts relative path to absolute.</strong> "website/index.html" → "/Users/shaiaviv/Projects/zap-onboarding-ai/output/website/index.html". The file system needs the full path.</div>
+          </div>
+          <div class="annot-item highlight">
+            <div class="annot-item-code">with open(full_path, "w", encoding="utf-8") as f:</div>
+            <div class="annot-item-text"><strong>Context manager for safe file writing.</strong> "w" = write mode (creates file or overwrites existing). encoding="utf-8" is essential for Hebrew — without it Python might use a system default that can't handle Hebrew characters. The <code>with</code> block automatically closes the file even if an error occurs.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">f.write(content)</div>
+            <div class="annot-item-text"><strong>Writes the entire string to disk.</strong> One call writes everything — HTML, JSON, or Markdown — whatever string was passed in.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- run_pipeline -->
+  <div class="fn-card">
+    <div class="fn-card-top">
+      <div class="fn-badge" style="background:rgba(88,166,255,0.1);color:var(--main-color);border:1px solid var(--main-color)">main.py</div>
+      <div>
+        <h3>run_pipeline(scraped_results, base_url=None)</h3>
+        <p>The core of the project. Takes scraped data, runs all 6 steps in order, saves every output. Called by main().</p>
+        <div class="fn-io-row">
+          <div class="fn-io-item"><span class="iolabel">in</span><code>scraped_results: dict</code> {url: text}</div>
+          <div class="fn-io-item"><span class="iolabel">in</span><code>base_url: str</code> optional, for image collection</div>
+          <div class="fn-io-item"><span class="iolabel">out</span><code>nothing — saves files, prints progress</code></div>
+        </div>
+      </div>
+    </div>
+    <div class="code-annotate">
+      <div class="code-panel">
+        <div class="code-panel-header"><span class="cdot" style="background:#ff5f57"></span><span class="cdot" style="background:#febc2e"></span><span class="cdot" style="background:#28c840"></span> full code</div>
+        <pre class="full-code"><div class="code-line"><span class="ln">55</span><span class="lc"><span class="kw">def</span> <span class="fni">run_pipeline</span>(scraped_results, base_url=<span class="k2">None</span>):</span></div><div class="code-line"><span class="ln">56</span><span class="lc">    <span class="va">raw_text</span> = <span class="fni">format_scraped_data</span>(scraped_results)</span></div><div class="code-line"><span class="ln">57</span><span class="lc"></span></div><div class="code-line"><span class="ln">58</span><span class="lc">    <span class="va">images</span> = []</span></div><div class="code-line"><span class="ln">59</span><span class="lc">    <span class="kw">if</span> <span class="va">base_url</span>:</span></div><div class="code-line"><span class="ln">60</span><span class="lc">        <span class="fni">print</span>(<span class="str">"  Collecting images..."</span>)</span></div><div class="code-line"><span class="ln">61</span><span class="lc">        <span class="va">images</span> = <span class="fni">collect_images</span>(base_url)</span></div><div class="code-line"><span class="ln">62</span><span class="lc"></span></div><div class="code-line"><span class="ln">63</span><span class="lc">    <span class="cm"># Step 2: Extract structured Client Card</span></span></div><div class="code-line"><span class="ln">64</span><span class="lc">    <span class="va">client_card_json</span> = <span class="fni">extract_client_card</span>(raw_text)</span></div><div class="code-line"><span class="ln">65</span><span class="lc">    <span class="fni">save_file</span>(<span class="str">"client_card.json"</span>, client_card_json)</span></div><div class="code-line"><span class="ln">66</span><span class="lc"></span></div><div class="code-line"><span class="ln">67</span><span class="lc">    <span class="va">client_card_md</span> = <span class="fni">generate_client_card_hebrew</span>(client_card_json)</span></div><div class="code-line"><span class="ln">68</span><span class="lc">    <span class="fni">save_file</span>(<span class="str">"client_card.md"</span>, client_card_md)</span></div><div class="code-line"><span class="ln">69</span><span class="lc"></span></div><div class="code-line"><span class="ln">70</span><span class="lc">    <span class="cm"># Step 3: Draft 5-page website</span></span></div><div class="code-line"><span class="ln">71</span><span class="lc">    <span class="va">website_pages</span> = <span class="fni">generate_draft_website</span>(client_card_json, images)</span></div><div class="code-line"><span class="ln">72</span><span class="lc">    <span class="kw">for</span> <span class="va">filename</span>, <span class="va">html</span> <span class="kw">in</span> <span class="va">website_pages</span>.<span class="fni">items</span>():</span></div><div class="code-line"><span class="ln">73</span><span class="lc">        <span class="fni">save_file</span>(<span class="str">f"website/{filename}"</span>, html)</span></div><div class="code-line"><span class="ln">74</span><span class="lc"></span></div><div class="code-line"><span class="ln">75</span><span class="lc">    <span class="cm"># Step 4: Draft Dapei Zahav minisite</span></span></div><div class="code-line"><span class="ln">76</span><span class="lc">    <span class="va">minisite_html</span> = <span class="fni">generate_draft_minisite</span>(client_card_json, images)</span></div><div class="code-line"><span class="ln">77</span><span class="lc">    <span class="fni">save_file</span>(<span class="str">"minisite/index.html"</span>, minisite_html)</span></div><div class="code-line"><span class="ln">78</span><span class="lc"></span></div><div class="code-line"><span class="ln">79</span><span class="lc">    <span class="cm"># Step 5: Welcome message — AFTER drafts exist</span></span></div><div class="code-line"><span class="ln">80</span><span class="lc">    <span class="va">welcome_msg</span> = <span class="fni">generate_welcome_message</span>(client_card_json)</span></div><div class="code-line"><span class="ln">81</span><span class="lc">    <span class="fni">save_file</span>(<span class="str">"welcome_message.md"</span>, welcome_msg)</span></div><div class="code-line"><span class="ln">82</span><span class="lc"></span></div><div class="code-line"><span class="ln">83</span><span class="lc">    <span class="cm"># Step 6: CRM log</span></span></div><div class="code-line"><span class="ln">84</span><span class="lc">    <span class="fni">log_to_crm</span>(client_card_json, welcome_msg, <span class="va">OUTPUT_DIR</span>)</span></div></pre>
+      </div>
+      <div class="annot-panel">
+        <div class="annot-panel-header">Line by line</div>
+        <div class="annot-list">
+          <div class="annot-item">
+            <div class="annot-item-code">raw_text = format_scraped_data(scraped_results)</div>
+            <div class="annot-item-text"><strong>Merges all scraped pages into one text blob.</strong> scraped_results is a dict like {"url1": "text1", "url2": "text2"}. format_scraped_data joins them with headers so Claude can read them as one document.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">images = []
+if base_url:
+    images = collect_images(base_url)</div>
+            <div class="annot-item-text"><strong>Optional image collection.</strong> Start with empty list as default. Only call collect_images() if we have a base_url. If discovery mode returned multiple URLs, base_url is the first one (most likely the client's own site).</div>
+          </div>
+          <div class="annot-item important">
+            <div class="annot-item-code">client_card_json = extract_client_card(raw_text)
+save_file("client_card.json", client_card_json)</div>
+            <div class="annot-item-text"><strong>First Claude call — structured extraction.</strong> Returns a JSON string. Saved immediately to disk. The same variable is then passed into every subsequent function.</div>
+          </div>
+          <div class="annot-item warn">
+            <div class="annot-item-code"># Step 5: Welcome message — AFTER drafts exist
+welcome_msg = generate_welcome_message(client_card_json)</div>
+            <div class="annot-item-text"><strong>Order matters here.</strong> The welcome message contains links to the website and minisite drafts. It must be generated AFTER steps 3 and 4. Originally it was step 3 — a bug we fixed by reordering.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">for filename, html in website_pages.items():
+    save_file(f"website/{filename}", html)</div>
+            <div class="annot-item-text"><strong>website_pages is a dict.</strong> generate_draft_website() returns {"index.html": "...", "services.html": "...", ...}. The loop saves each page. The f-string prepends "website/" to the filename to put them in the right subfolder.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- main() -->
+  <div class="fn-card">
+    <div class="fn-card-top">
+      <div class="fn-badge" style="background:rgba(88,166,255,0.1);color:var(--main-color);border:1px solid var(--main-color)">main.py</div>
+      <div>
+        <h3>main()</h3>
+        <p>Entry point. Parses CLI arguments, decides which scraping mode to use, then calls run_pipeline().</p>
+      </div>
+    </div>
+    <div class="code-annotate">
+      <div class="code-panel">
+        <div class="code-panel-header"><span class="cdot" style="background:#ff5f57"></span><span class="cdot" style="background:#febc2e"></span><span class="cdot" style="background:#28c840"></span> full code</div>
+        <pre class="full-code"><div class="code-line"><span class="ln">87</span><span class="lc"><span class="kw">def</span> <span class="fni">main</span>():</span></div><div class="code-line"><span class="ln">88</span><span class="lc">    <span class="va">parser</span> = <span class="va">argparse</span>.<span class="fni">ArgumentParser</span>(</span></div><div class="code-line"><span class="ln">89</span><span class="lc">        description=<span class="str">"Zap Onboarding AI Pipeline"</span></span></div><div class="code-line"><span class="ln">90</span><span class="lc">    )</span></div><div class="code-line"><span class="ln">91</span><span class="lc">    <span class="va">group</span> = <span class="va">parser</span>.<span class="fni">add_mutually_exclusive_group</span>()</span></div><div class="code-line"><span class="ln">92</span><span class="lc">    <span class="va">group</span>.<span class="fni">add_argument</span>(<span class="str">"--url"</span>, help=<span class="str">"Direct URL to scrape"</span>)</span></div><div class="code-line"><span class="ln">93</span><span class="lc">    <span class="va">group</span>.<span class="fni">add_argument</span>(<span class="str">"--name"</span>, help=<span class="str">"Business name"</span>)</span></div><div class="code-line"><span class="ln">94</span><span class="lc">    <span class="va">parser</span>.<span class="fni">add_argument</span>(<span class="str">"--phone"</span>, help=<span class="str">"Phone number"</span>)</span></div><div class="code-line"><span class="ln">95</span><span class="lc">    <span class="va">parser</span>.<span class="fni">add_argument</span>(<span class="str">"--location"</span>, help=<span class="str">"City/area"</span>)</span></div><div class="code-line"><span class="ln">96</span><span class="lc">    <span class="va">parser</span>.<span class="fni">add_argument</span>(<span class="str">"positional_url"</span>, nargs=<span class="str">"?"</span>,</span></div><div class="code-line"><span class="ln">97</span><span class="lc">                        help=<span class="va">argparse</span>.<span class="va">SUPPRESS</span>)</span></div><div class="code-line"><span class="ln">98</span><span class="lc">    <span class="va">args</span> = <span class="va">parser</span>.<span class="fni">parse_args</span>()</span></div><div class="code-line"><span class="ln">99</span><span class="lc"></span></div><div class="code-line"><span class="ln">100</span><span class="lc">    <span class="fni">ensure_output_dirs</span>()</span></div><div class="code-line"><span class="ln">101</span><span class="lc"></span></div><div class="code-line"><span class="ln">102</span><span class="lc">    <span class="kw">if</span> <span class="va">args</span>.<span class="va">name</span>:</span></div><div class="code-line"><span class="ln">103</span><span class="lc">        <span class="kw">if not</span> <span class="va">args</span>.<span class="va">phone</span> <span class="kw">or not</span> <span class="va">args</span>.<span class="va">location</span>:</span></div><div class="code-line"><span class="ln">104</span><span class="lc">            <span class="fni">print</span>(<span class="str">"Error: --name requires --phone and --location"</span>)</span></div><div class="code-line"><span class="ln">105</span><span class="lc">            <span class="va">sys</span>.<span class="fni">exit</span>(<span class="num">1</span>)</span></div><div class="code-line"><span class="ln">106</span><span class="lc">        <span class="va">discovered_urls</span> = <span class="fni">discover_assets</span>(</span></div><div class="code-line"><span class="ln">107</span><span class="lc">            <span class="va">args</span>.<span class="va">name</span>, <span class="va">args</span>.<span class="va">phone</span>, <span class="va">args</span>.<span class="va">location</span></span></div><div class="code-line"><span class="ln">108</span><span class="lc">        )</span></div><div class="code-line"><span class="ln">109</span><span class="lc">        <span class="kw">if not</span> <span class="va">discovered_urls</span>:</span></div><div class="code-line"><span class="ln">110</span><span class="lc">            <span class="fni">print</span>(<span class="str">"No verified assets found."</span>)</span></div><div class="code-line"><span class="ln">111</span><span class="lc">            <span class="va">sys</span>.<span class="fni">exit</span>(<span class="num">1</span>)</span></div><div class="code-line"><span class="ln">112</span><span class="lc">        <span class="va">base_url</span> = <span class="va">discovered_urls</span>[<span class="num">0</span>]</span></div><div class="code-line"><span class="ln">113</span><span class="lc">        <span class="va">scraped</span> = <span class="fni">scrape_multiple</span>(discovered_urls)</span></div><div class="code-line"><span class="ln">114</span><span class="lc">    <span class="kw">else</span>:</span></div><div class="code-line"><span class="ln">115</span><span class="lc">        <span class="va">base_url</span> = <span class="va">args</span>.<span class="va">url</span> <span class="kw">or</span> <span class="va">args</span>.<span class="va">positional_url</span> <span class="kw">or</span> <span class="va">DEMO_URL</span></span></div><div class="code-line"><span class="ln">116</span><span class="lc">        <span class="va">scraped</span> = <span class="fni">scrape_client</span>(base_url)</span></div><div class="code-line"><span class="ln">117</span><span class="lc"></span></div><div class="code-line"><span class="ln">118</span><span class="lc">    <span class="fni">run_pipeline</span>(scraped, base_url=base_url)</span></div><div class="code-line"><span class="ln">119</span><span class="lc"></span></div><div class="code-line"><span class="ln">120</span><span class="lc"><span class="kw">if</span> <span class="va">__name__</span> == <span class="str">"__main__"</span>:</span></div><div class="code-line"><span class="ln">121</span><span class="lc">    <span class="fni">main</span>()</span></div></pre>
+      </div>
+      <div class="annot-panel">
+        <div class="annot-panel-header">Line by line</div>
+        <div class="annot-list">
+          <div class="annot-item">
+            <div class="annot-item-code">parser = argparse.ArgumentParser(...)</div>
+            <div class="annot-item-text"><strong>Creates a CLI argument parser.</strong> argparse reads sys.argv (the words after "python main.py") and maps them to variables. It also auto-generates --help output.</div>
+          </div>
+          <div class="annot-item important">
+            <div class="annot-item-code">group = parser.add_mutually_exclusive_group()
+group.add_argument("--url", ...)
+group.add_argument("--name", ...)</div>
+            <div class="annot-item-text"><strong>Mutually exclusive = only one allowed.</strong> You can't use --url and --name together. argparse enforces this and shows an error if you try. --phone and --location are NOT in the group — they're always optional arguments.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">nargs="?"  +  argparse.SUPPRESS</div>
+            <div class="annot-item-text"><strong>Backwards compatibility trick.</strong> nargs="?" means "0 or 1 values." SUPPRESS hides it from --help. This lets old-style calls like <code>python main.py https://...</code> still work without the --url flag.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">args = parser.parse_args()</div>
+            <div class="annot-item-text"><strong>This is where the magic happens.</strong> argparse reads the actual command line, validates it, and populates args.url, args.name, args.phone, args.location — all as Python attributes you can access with dot notation.</div>
+          </div>
+          <div class="annot-item warn">
+            <div class="annot-item-code">sys.exit(1)</div>
+            <div class="annot-item-text"><strong>Exit with error code 1.</strong> The number 1 tells the shell "something went wrong." Code 0 = success. This stops the pipeline immediately if required arguments are missing.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">base_url = args.url or args.positional_url or DEMO_URL</div>
+            <div class="annot-item-text"><strong>Python's "or" as a fallback chain.</strong> Evaluates left to right, returns the first truthy value. If args.url is None, try args.positional_url. If that's also None, use DEMO_URL (imazganim.co.il). This is the no-args demo mode.</div>
+          </div>
+          <div class="annot-item highlight">
+            <div class="annot-item-code">if __name__ == "__main__":
+    main()</div>
+            <div class="annot-item-text"><strong>Only run main() when executed directly.</strong> If someone does <code>from main import run_pipeline</code>, this block doesn't execute. __name__ is "__main__" only when the file is run directly. This is standard Python idiom.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════
+     SCRAPER.PY
+════════════════════════════════════════════════════ -->
+<div class="file-section" id="scraper-py">
+  <div class="file-header fh-scraper">
+    <div class="file-icon">🕷️</div>
+    <div>
+      <h2 style="color:var(--scraper-color)">scraper.py</h2>
+      <p>All web scraping logic — HTTP requests, HTML parsing, DuckDuckGo search, phone verification, image collection.</p>
+    </div>
+  </div>
+
+  <!-- CONCEPT BOX: requests + BeautifulSoup -->
+  <div style="background:var(--surface);border:1px solid var(--scraper-color);border-radius:12px;padding:28px 32px;margin-bottom:32px;">
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--scraper-color);margin-bottom:16px;">💡 How we actually get client information</div>
+
+    <p style="color:#c9d1d9;margin-bottom:20px;font-size:14px;line-height:1.75;">Before reading the code, understand the 3-step chain. Every piece of client data we extract starts here:</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px;">
+      <div style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:16px;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--scraper-color);font-weight:700;margin-bottom:8px;">1. requests.get(url)</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6;">Fetches the raw HTML of a webpage. Exactly what a browser does — but in Python code.</div>
+      </div>
+      <div style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:16px;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--scraper-color);font-weight:700;margin-bottom:8px;">2. BeautifulSoup</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6;">Parses the raw HTML, strips all tags, JavaScript and CSS, returns clean readable text.</div>
+      </div>
+      <div style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:16px;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--scraper-color);font-weight:700;margin-bottom:8px;">3. Claude API</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.6;">Receives the clean text and extracts structured JSON — business name, phone, services, etc.</div>
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px;">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">What requests.get() returns vs what Claude needs</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <div style="font-size:11px;color:#f85149;font-weight:700;margin-bottom:6px;">RAW HTML (what requests returns)</div>
+          <pre style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#6c7086;line-height:1.6;">&lt;html&gt;
+&lt;script&gt;lots of JS...&lt;/script&gt;
+&lt;style&gt;.header{color:red}&lt;/style&gt;
+&lt;h1&gt;יגאל מזגנים&lt;/h1&gt;
+&lt;p&gt;התקנה ותיקון מזגנים&lt;/p&gt;
+&lt;nav&gt;&lt;a href="/about"&gt;אודות&lt;/a&gt;&lt;/nav&gt;
+&lt;/html&gt;</pre>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--scraper-color);font-weight:700;margin-bottom:6px;">CLEAN TEXT (after BeautifulSoup)</div>
+          <pre style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a5d6ff;line-height:1.6;">יגאל מזגנים
+התקנה ותיקון מזגנים
+טלפון: 072-3977065
+אודות</pre>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:20px;">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">The User-Agent header — why we fake being Chrome</div>
+      <p style="font-size:13px;color:#c9d1d9;line-height:1.75;margin-bottom:14px;">Every HTTP request carries a <strong style="color:white;">User-Agent</strong> header — a label identifying who is making the request. Servers read this and decide whether to respond.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div style="padding:12px 16px;border-radius:6px;background:rgba(248,81,73,0.08);border:1px solid rgba(248,81,73,0.3);">
+          <div style="font-size:11px;color:#f85149;font-weight:700;margin-bottom:6px;">DEFAULT — gets blocked</div>
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#f85149;">python-requests/2.28.0</code>
+          <p style="font-size:12px;color:var(--muted);margin-top:6px;">Server sees "bot" → returns 403 or captcha</p>
+        </div>
+        <div style="padding:12px 16px;border-radius:6px;background:rgba(63,185,80,0.08);border:1px solid rgba(63,185,80,0.3);">
+          <div style="font-size:11px;color:var(--scraper-color);font-weight:700;margin-bottom:6px;">OUR HEADER — passes through</div>
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--scraper-color);">Mozilla/5.0 (Macintosh...)</code>
+          <p style="font-size:12px;color:var(--muted);margin-top:6px;">Server sees "Chrome on Mac" → serves real page</p>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;">This is legal and extremely common — you're reading publicly visible pages, just announcing yourself differently. For sites with advanced bot detection (JS checks, cookie tracking) you'd need Playwright. Israeli business sites don't need that.</p>
+    </div>
+  </div>
+
+  <!-- scrape_url -->
+  <div class="fn-card">
+    <div class="fn-card-top">
+      <div class="fn-badge" style="background:rgba(63,185,80,0.1);color:var(--scraper-color);border:1px solid var(--scraper-color)">scraper.py</div>
+      <div>
+        <h3>scrape_url(url, encoding=None)</h3>
+        <p>The most fundamental function. Fetches one URL, strips all HTML tags, returns clean readable text.</p>
+        <div class="fn-io-row">
+          <div class="fn-io-item"><span class="iolabel">in</span><code>url: str</code></div>
+          <div class="fn-io-item"><span class="iolabel">out</span><code>str</code> — clean text or "[ERROR ...]"</div>
+        </div>
+      </div>
+    </div>
+    <div class="code-annotate">
+      <div class="code-panel">
+        <div class="code-panel-header"><span class="cdot" style="background:#ff5f57"></span><span class="cdot" style="background:#febc2e"></span><span class="cdot" style="background:#28c840"></span> full code</div>
+        <pre class="full-code"><div class="code-line"><span class="ln">32</span><span class="lc"><span class="kw">def</span> <span class="fni">scrape_url</span>(url, encoding=<span class="k2">None</span>):</span></div><div class="code-line"><span class="ln">33</span><span class="lc">    <span class="kw">try</span>:</span></div><div class="code-line"><span class="ln">34</span><span class="lc">        <span class="va">resp</span> = <span class="va">requests</span>.<span class="fni">get</span>(</span></div><div class="code-line"><span class="ln">35</span><span class="lc">            url,</span></div><div class="code-line"><span class="ln">36</span><span class="lc">            headers=<span class="va">HEADERS</span>,</span></div><div class="code-line"><span class="ln">37</span><span class="lc">            timeout=<span class="va">TIMEOUT</span></span></div><div class="code-line"><span class="ln">38</span><span class="lc">        )</span></div><div class="code-line"><span class="ln">39</span><span class="lc">        <span class="va">resp</span>.<span class="fni">raise_for_status</span>()</span></div><div class="code-line"><span class="ln">40</span><span class="lc">        <span class="kw">if</span> <span class="va">encoding</span>:</span></div><div class="code-line"><span class="ln">41</span><span class="lc">            <span class="va">resp</span>.<span class="va">encoding</span> = <span class="va">encoding</span></span></div><div class="code-line"><span class="ln">42</span><span class="lc">        <span class="kw">else</span>:</span></div><div class="code-line"><span class="ln">43</span><span class="lc">            <span class="va">resp</span>.<span class="va">encoding</span> = <span class="va">resp</span>.<span class="va">apparent_encoding</span></span></div><div class="code-line"><span class="ln">44</span><span class="lc">        <span class="va">soup</span> = <span class="fni">BeautifulSoup</span>(</span></div><div class="code-line"><span class="ln">45</span><span class="lc">            <span class="va">resp</span>.<span class="va">text</span>, <span class="str">"html.parser"</span></span></div><div class="code-line"><span class="ln">46</span><span class="lc">        )</span></div><div class="code-line"><span class="ln">47</span><span class="lc">        <span class="kw">for</span> <span class="va">tag</span> <span class="kw">in</span> <span class="va">soup</span>([<span class="str">"script"</span>,<span class="str">"style"</span>,<span class="str">"noscript"</span>]):</span></div><div class="code-line"><span class="ln">48</span><span class="lc">            <span class="va">tag</span>.<span class="fni">decompose</span>()</span></div><div class="code-line"><span class="ln">49</span><span class="lc">        <span class="va">text</span> = <span class="va">soup</span>.<span class="fni">get_text</span>(</span></div><div class="code-line"><span class="ln">50</span><span class="lc">            separator=<span class="str">"\n"</span>, strip=<span class="k2">True</span></span></div><div class="code-line"><span class="ln">51</span><span class="lc">        )</span></div><div class="code-line"><span class="ln">52</span><span class="lc">        <span class="va">lines</span> = [</span></div><div class="code-line"><span class="ln">53</span><span class="lc">            <span class="va">line</span> <span class="kw">for</span> <span class="va">line</span> <span class="kw">in</span> <span class="va">text</span>.<span class="fni">splitlines</span>()</span></div><div class="code-line"><span class="ln">54</span><span class="lc">            <span class="kw">if</span> <span class="va">line</span>.<span class="fni">strip</span>()</span></div><div class="code-line"><span class="ln">55</span><span class="lc">        ]</span></div><div class="code-line"><span class="ln">56</span><span class="lc">        <span class="kw">return</span> <span class="str">"\n"</span>.<span class="fni">join</span>(lines)</span></div><div class="code-line"><span class="ln">57</span><span class="lc">    <span class="kw">except</span> <span class="va">Exception</span> <span class="kw">as</span> <span class="va">e</span>:</span></div><div class="code-line"><span class="ln">58</span><span class="lc">        <span class="kw">return</span> <span class="str">f"[ERROR scraping {url}: {e}]"</span></div></pre>
+      </div>
+      <div class="annot-panel">
+        <div class="annot-panel-header">Line by line</div>
+        <div class="annot-list">
+          <div class="annot-item">
+            <div class="annot-item-code">try: ... except Exception as e:</div>
+            <div class="annot-item-text"><strong>Catch everything that can go wrong.</strong> Network timeout, DNS failure, 404, 503 — any of these throw exceptions. Instead of crashing the whole pipeline, we catch and return an error string starting with "[ERROR". Callers check for this prefix.</div>
+          </div>
+          <div class="annot-item important">
+            <div class="annot-item-code">requests.get(url, headers=HEADERS, timeout=TIMEOUT)</div>
+            <div class="annot-item-text"><strong>HTTP GET request.</strong> HEADERS contains a fake browser User-Agent — without it, many sites block Python scripts. TIMEOUT=10 means: if the server doesn't respond in 10 seconds, give up and raise a Timeout exception (caught above).</div>
+          </div>
+          <div class="annot-item warn">
+            <div class="annot-item-code">resp.raise_for_status()</div>
+            <div class="annot-item-text"><strong>Turns HTTP errors into Python exceptions.</strong> By default, requests.get() "succeeds" even on 404 Not Found or 500 Server Error — it just gives you the error page. raise_for_status() throws an exception for any 4xx/5xx code, so the except block catches it.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">resp.encoding = resp.apparent_encoding</div>
+            <div class="annot-item-text"><strong>Fixes Hebrew text corruption.</strong> Old Israeli sites often use Windows-1255 encoding. requests guesses wrong. apparent_encoding uses chardet to analyse the actual bytes and pick the right encoding — crucial for getting Hebrew characters instead of garbled text.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">soup(["script", "style", "noscript"])
+tag.decompose()</div>
+            <div class="annot-item-text"><strong>Removes noise before extracting text.</strong> soup([...]) finds all tags of those types. decompose() removes each one from the tree entirely. Without this, get_text() would include hundreds of lines of JavaScript code and CSS rules mixed into the business description.</div>
+          </div>
+          <div class="annot-item good">
+            <div class="annot-item-code">lines = [line for line in text.splitlines() if line.strip()]</div>
+            <div class="annot-item-text"><strong>List comprehension — filters empty lines.</strong> splitlines() cuts the text at every newline. The <code>if line.strip()</code> condition keeps only lines that have at least one non-whitespace character. This removes blank lines and lines with only spaces — reducing token waste when sending to Claude.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- _phone_variants -->
+  <div class="fn-card">
+    <div class="fn-card-top">
+      <div class="fn-badge" style="background:rgba(63,185,80,0.1);color:var(--scraper-color);border:1px solid var(--scraper-color)">scraper.py</div>
+      <div>
+        <h3>_phone_variants(phone)</h3>
+        <p>Returns all the different ways a phone number might be written on a website. Used to cross-verify that a found URL actually belongs to this client.</p>
+        <div class="fn-io-row">
+          <div class="fn-io-item"><span class="iolabel">in</span><code>"072-3977065"</code></div>
+          <div class="fn-io-item"><span class="iolabel">out</span><code>{"072-3977065", "0723977065", "723977065", "072-3977065"}</code></div>
+        </div>
+      </div>
+    </div>
+    <div class="code-annotate">
+      <div class="code-panel">
+        <div class="code-panel-header"><span class="cdot" style="background:#ff5f57"></span><span class="cdot" style="background:#febc2e"></span><span class="cdot" style="background:#28c840"></span> full code</div>
+        <pre class="full-code"><div class="code-line"><span class="ln">122</span><span class="lc"><span class="kw">def</span> <span class="fni">_phone_variants</span>(phone):</span></div><div class="code-line"><span class="ln">123</span><span class="lc">    <span class="va">digits_only</span> = <span class="va">re</span>.<span class="fni">sub</span>(<span class="str">r"\D"</span>, <span class="str">""</span>, phone)</span></div><div class="code-line"><span class="ln">124</span><span class="lc">    <span class="va">with_dash</span> = <span class="va">re</span>.<span class="fni">sub</span>(</span></div><div class="code-line"><span class="ln">125</span><span class="lc">        <span class="str">r"(\d{3})(\d+)"</span>, <span class="str">r"\1-\2"</span>, digits_only</span></div><div class="code-line"><span class="ln">126</span><span class="lc">    )</span></div><div class="code-line"><span class="ln">127</span><span class="lc">    <span class="kw">return</span> {</span></div><div class="code-line"><span class="ln">128</span><span class="lc">        phone,</span></div><div class="code-line"><span class="ln">129</span><span class="lc">        digits_only,</span></div><div class="code-line"><span class="ln">130</span><span class="lc">        with_dash,</span></div><div class="code-line"><span class="ln">131</span><span class="lc">        digits_only[<span class="num">1</span>:]</span></div><div class="code-line"><span class="ln">132</span><span class="lc">    }</span></div></pre>
+      </div>
+      <div class="annot-panel">
+        <div class="annot-panel-header">Line by line</div>
+        <div class="annot-list">
+          <div class="annot-item">
+            <div class="annot-item-code">re.sub(r"\D", "", phone)</div>
+            <div class="annot-item-text"><strong>Regex: remove everything that is not a digit.</strong> \D means "non-digit character." re.sub replaces all matches with "" (empty string). "072-3977065" → "0723977065". This gives the raw digits to build other formats from.</div>
+          </div>
+          <div class="annot-item important">
+            <div class="annot-item-code">re.sub(r"(\d{3})(\d+)", r"\1-\2", digits_only)</div>
+            <div class="annot-item-text"><strong>Regex with capture groups — adds a dash.</strong> (\d{3}) captures the first 3 digits into group 1. (\d+) captures the rest into group 2. r"\1-\2" replaces the whole match with "group1-group2". "0723977065" → "072-3977065".</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">digits_only[1:]</div>
+            <div class="annot-item-text"><strong>String slice — removes the leading 0.</strong> [1:] means "from index 1 to the end." "0723977065" → "723977065". Some directory sites store numbers without the leading zero.</div>
+          </div>
+          <div class="annot-item good">
+            <div class="annot-item-code">return { phone, digits_only, with_dash, digits_only[1:] }</div>
+            <div class="annot-item-text"><strong>Returns a set, not a list.</strong> Curly braces {} with items separated by commas = a set. Sets have no duplicates and fast membership testing. When we check <code>if any(v in text for v in variants)</code>, Python uses the set efficiently.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONCEPT BOX: DuckDuckGo + requests together -->
+  <div style="background:var(--surface);border:1px solid var(--scraper-color);border-radius:12px;padding:28px 32px;margin-bottom:32px;">
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--scraper-color);margin-bottom:16px;">💡 DuckDuckGo vs requests — two different tools, one job</div>
+
+    <p style="color:#c9d1d9;font-size:14px;line-height:1.75;margin-bottom:20px;">They look similar but solve completely different problems. Understanding this distinction is key to explaining the discovery mode.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+      <div style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:20px;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--num);font-weight:700;margin-bottom:8px;">DuckDuckGo (ddgs)</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:12px;">"I don't know the URL — find it for me."</div>
+        <div style="font-size:13px;color:#c9d1d9;line-height:1.7;">You give it a <strong style="color:white;">search query</strong>. It returns a list of URLs that match. Like typing into Google — you get results, not page content.</div>
+      </div>
+      <div style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:20px;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--scraper-color);font-weight:700;margin-bottom:8px;">requests</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:12px;">"I know the URL — fetch its content."</div>
+        <div style="font-size:13px;color:#c9d1d9;line-height:1.7;">You give it a <strong style="color:white;">URL</strong>. It fetches the actual page and returns the HTML. You must already know the address.</div>
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px;">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;">How they work together in discover_assets()</div>
+      <div style="display:flex;flex-direction:column;gap:0;">
+        <div style="display:flex;gap:16px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--border);">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--num);color:#0d1117;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--num);margin-bottom:4px;">DuckDuckGo: ddgs.text("072-3977065 מזגנים")</div>
+            <div style="font-size:13px;color:var(--muted);">Returns: ["https://imazganim.co.il", "https://prosites.co.il/...", "https://bakrayot.co.il/...", ...]</div>
+            <div style="font-size:12px;color:#484f58;margin-top:4px;">We don't know which of these are actually Yigal's. Some might be wrong.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--border);">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--scraper-color);color:#0d1117;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--scraper-color);margin-bottom:4px;">requests.get() each candidate URL</div>
+            <div style="font-size:13px;color:var(--muted);">Fetches the actual page content of each URL from step 1.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:flex-start;padding:14px 0;">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--llm-color);color:#0d1117;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div>
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--llm-color);margin-bottom:4px;">Check: does "072-3977065" appear in the page text?</div>
+            <div style="font-size:13px;color:var(--muted);">✓ imazganim.co.il — phone found → verified</div>
+            <div style="font-size:13px;color:var(--muted);">✗ bakrayot.co.il — different phone → rejected</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:14px 18px;border-radius:8px;background:rgba(210,153,34,0.08);border:1px solid rgba(210,153,34,0.3);font-size:13px;color:#c9d1d9;line-height:1.7;">
+      <strong style="color:var(--crm-color);">Why not just use DuckDuckGo results directly?</strong> Because DuckDuckGo can return the wrong Yigal. There could be another AC technician named יגאל somewhere else in Israel. The phone verification step is what separates "probably his" from "definitely his."
+    </div>
+  </div>
+
+  <!-- discover_assets -->
+  <div class="fn-card">
+    <div class="fn-card-top">
+      <div class="fn-badge" style="background:rgba(63,185,80,0.1);color:var(--scraper-color);border:1px solid var(--scraper-color)">scraper.py</div>
+      <div>
+        <h3>discover_assets(business_name, phone, location)</h3>
+        <p>Searches DuckDuckGo for the client's URLs, then verifies each one by checking the phone number appears on the page. Prevents false positives.</p>
+        <div class="fn-io-row">
+          <div class="fn-io-item"><span class="iolabel">in</span><code>"יגאל מזגנים"</code><code>"072-3977065"</code><code>"קריות"</code></div>
+          <div class="fn-io-item"><span class="iolabel">out</span><code>list of verified URLs</code></div>
+        </div>
+      </div>
+    </div>
+    <div class="code-annotate">
+      <div class="code-panel">
+        <div class="code-panel-header"><span class="cdot" style="background:#ff5f57"></span><span class="cdot" style="background:#febc2e"></span><span class="cdot" style="background:#28c840"></span> full code</div>
+        <pre class="full-code"><div class="code-line"><span class="ln">130</span><span class="lc"><span class="kw">def</span> <span class="fni">discover_assets</span>(business_name, phone, location):</span></div><div class="code-line"><span class="ln">131</span><span class="lc">    <span class="va">variants</span> = <span class="fni">_phone_variants</span>(phone)</span></div><div class="code-line"><span class="ln">132</span><span class="lc"></span></div><div class="code-line"><span class="ln">133</span><span class="lc">    <span class="va">queries</span> = [</span></div><div class="code-line"><span class="ln">134</span><span class="lc">        <span class="str">f"{phone} מזגנים"</span>,</span></div><div class="code-line"><span class="ln">135</span><span class="lc">        <span class="str">f"{phone} {business_name}"</span>,</span></div><div class="code-line"><span class="ln">136</span><span class="lc">        <span class="str">f"{business_name} {location}"</span>,</span></div><div class="code-line"><span class="ln">137</span><span class="lc">        <span class="str">f"{business_name} site:d.co.il"</span></span></div><span class="lc">        <span class="str">  <span class="cm"># + site:b144.co.il OR site:facebook.com</span></span></span><div class="code-line"><span class="ln">138</span><span class="lc">    ]</span></div><div class="code-line"><span class="ln">139</span><span class="lc"></span></div><div class="code-line"><span class="ln">140</span><span class="lc">    <span class="va">candidate_urls</span> = <span class="fni">set</span>()</span></div><div class="code-line"><span class="ln">141</span><span class="lc">    <span class="kw">with</span> <span class="fni">DDGS</span>() <span class="kw">as</span> <span class="va">ddgs</span>:</span></div><div class="code-line"><span class="ln">142</span><span class="lc">        <span class="kw">for</span> <span class="va">query</span> <span class="kw">in</span> <span class="va">queries</span>:</span></div><div class="code-line"><span class="ln">143</span><span class="lc">            <span class="kw">try</span>:</span></div><div class="code-line"><span class="ln">144</span><span class="lc">                <span class="va">results</span> = <span class="va">ddgs</span>.<span class="fni">text</span>(query, max_results=<span class="num">6</span>)</span></div><div class="code-line"><span class="ln">145</span><span class="lc">                <span class="kw">for</span> <span class="va">r</span> <span class="kw">in</span> <span class="va">results</span>:</span></div><div class="code-line"><span class="ln">146</span><span class="lc">                    <span class="va">url</span> = <span class="va">r</span>.<span class="fni">get</span>(<span class="str">"href"</span>, <span class="str">""</span>)</span></div><div class="code-line"><span class="ln">147</span><span class="lc">                    <span class="va">domain</span> = <span class="fni">urlparse</span>(url).<span class="va">netloc</span>.<span class="fni">replace</span>(<span class="str">"www."</span>, <span class="str">""</span>)</span></div><div class="code-line"><span class="ln">148</span><span class="lc">                    <span class="kw">if not</span> <span class="fni">any</span>(</span></div><div class="code-line"><span class="ln">149</span><span class="lc">                        <span class="va">skip</span> <span class="kw">in</span> <span class="va">domain</span></span></div><div class="code-line"><span class="ln">150</span><span class="lc">                        <span class="kw">for</span> <span class="va">skip</span> <span class="kw">in</span> <span class="va">SKIP_DOMAINS</span></span></div><div class="code-line"><span class="ln">151</span><span class="lc">                    ):</span></div><div class="code-line"><span class="ln">152</span><span class="lc">                        <span class="va">candidate_urls</span>.<span class="fni">add</span>(url)</span></div><div class="code-line"><span class="ln">153</span><span class="lc">            <span class="kw">except</span> <span class="va">Exception</span> <span class="kw">as</span> <span class="va">e</span>:</span></div><div class="code-line"><span class="ln">154</span><span class="lc">                <span class="fni">print</span>(<span class="str">f"  [Search error: {e}]"</span>)</span></div><div class="code-line"><span class="ln">155</span><span class="lc"></span></div><div class="code-line"><span class="ln">156</span><span class="lc">    <span class="va">verified</span> = []</span></div><div class="code-line"><span class="ln">157</span><span class="lc">    <span class="kw">for</span> <span class="va">url</span> <span class="kw">in</span> <span class="va">candidate_urls</span>:</span></div><div class="code-line"><span class="ln">158</span><span class="lc">        <span class="va">text</span> = <span class="fni">scrape_url</span>(url)</span></div><div class="code-line"><span class="ln">159</span><span class="lc">        <span class="kw">if</span> <span class="va">text</span>.<span class="fni">startswith</span>(<span class="str">"[ERROR"</span>):</span></div><div class="code-line"><span class="ln">160</span><span class="lc">            <span class="kw">continue</span></span></div><div class="code-line"><span class="ln">161</span><span class="lc">        <span class="kw">if</span> <span class="fni">any</span>(<span class="va">v</span> <span class="kw">in</span> <span class="va">text</span> <span class="kw">for</span> <span class="va">v</span> <span class="kw">in</span> <span class="va">variants</span>):</span></div><div class="code-line"><span class="ln">162</span><span class="lc">            <span class="va">verified</span>.<span class="fni">append</span>(url)</span></div><div class="code-line"><span class="ln">163</span><span class="lc">    <span class="kw">return</span> <span class="va">verified</span></div></pre>
+      </div>
+      <div class="annot-panel">
+        <div class="annot-panel-header">Line by line</div>
+        <div class="annot-list">
+          <div class="annot-item">
+            <div class="annot-item-code">queries = [ f"{phone} מזגנים", f"{phone} {business_name}", ... ]</div>
+            <div class="annot-item-text"><strong>4 different search queries, not 1.</strong> Each query approaches the problem differently. Phone + category is most reliable for Israeli businesses. Phone + name handles directories. Name + location catches Google Maps entries. The site: query targets specific directories.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">candidate_urls = set()</div>
+            <div class="annot-item-text"><strong>Set prevents duplicates automatically.</strong> If the same URL appears in results from two different queries, set.add() silently ignores the second occurrence. A list would add it twice.</div>
+          </div>
+          <div class="annot-item important">
+            <div class="annot-item-code">with DDGS() as ddgs:
+    results = ddgs.text(query, max_results=6)</div>
+            <div class="annot-item-text"><strong>DuckDuckGo search.</strong> DDGS() opens a session. ddgs.text() runs a web search and returns a list of dicts, each with "href" (URL), "title", and "body" (snippet). max_results=6 limits results per query — 4 queries × 6 results = max 24 candidates.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">if not any(skip in domain for skip in SKIP_DOMAINS):</div>
+            <div class="annot-item-text"><strong>Filter out social media and useless sites.</strong> any() returns True if at least one item matches. "not any(...)" = none of the skip domains appear in this domain. Filters google.com, facebook.com, instagram.com etc. before even trying to scrape.</div>
+          </div>
+          <div class="annot-item highlight">
+            <div class="annot-item-code">if any(v in text for v in variants):
+    verified.append(url)</div>
+            <div class="annot-item-text"><strong>The core verification logic.</strong> Scrapes the candidate URL, then checks if any phone format appears in the page text. If the phone number is on the page, this is genuinely the client's site. If not — even if the name matches — it gets rejected. This is how we distinguish "יגאל מזגנים" in Krayot from "יגאל מזגנים" somewhere else.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">if text.startswith("[ERROR"):
+    continue</div>
+            <div class="annot-item-text"><strong>Skip unreachable URLs.</strong> scrape_url() returns an error string for failed requests. "continue" skips to the next iteration of the for loop. We don't add unreachable URLs to verified.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════
+     LLM.PY
+════════════════════════════════════════════════════ -->
+<div class="file-section" id="llm-py">
+  <div class="file-header fh-llm">
+    <div class="file-icon">🤖</div>
+    <div>
+      <h2 style="color:var(--llm-color)">llm.py</h2>
+      <p>All Claude API calls. Every function builds a system prompt + user prompt and calls call_claude().</p>
+    </div>
+  </div>
+
+  <!-- CONCEPT BOX: SDK + client object -->
+  <div style="background:var(--surface);border:1px solid var(--llm-color);border-radius:12px;padding:28px 32px;margin-bottom:32px;">
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--llm-color);margin-bottom:16px;">💡 What is an SDK — and what is "client"?</div>
+
+    <p style="color:#c9d1d9;font-size:14px;line-height:1.75;margin-bottom:20px;">Before reading any Claude API code, understand these two concepts. They appear in the very first lines of llm.py and in every function.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+      <div style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:20px;">
+        <div style="font-size:13px;color:var(--llm-color);font-weight:700;margin-bottom:10px;">SDK — Software Development Kit</div>
+        <div style="font-size:13px;color:#c9d1d9;line-height:1.75;margin-bottom:12px;">A pre-written package that hides the hard parts. Without it you'd manually write HTTPS requests, format JSON bodies, parse responses, handle errors.</div>
+        <div style="background:#161b22;border-radius:6px;padding:12px;font-size:12px;color:var(--muted);line-height:1.7;">
+          <div style="color:#f85149;margin-bottom:4px;">Without SDK (manual):</div>
+          <code style="font-family:'JetBrains Mono',monospace;">requests.post("https://api.anthropic.com/v1/messages", headers={...}, json={...})</code>
+          <div style="color:var(--scraper-color);margin-top:10px;margin-bottom:4px;">With SDK:</div>
+          <code style="font-family:'JetBrains Mono',monospace;">client.messages.create(...)</code>
+        </div>
+      </div>
+      <div style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:20px;">
+        <div style="font-size:13px;color:var(--llm-color);font-weight:700;margin-bottom:10px;">client — the connection object</div>
+        <div style="font-size:13px;color:#c9d1d9;line-height:1.75;margin-bottom:12px;"><code style="font-family:'JetBrains Mono',monospace;font-size:12px;background:#161b22;padding:2px 6px;border-radius:3px;">client</code> is just a variable name — it holds the Anthropic SDK object. Created once at the top of llm.py, reused by every function.</div>
+        <div style="background:#161b22;border-radius:6px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:#c9d1d9;line-height:1.8;">
+          <span style="color:#ff7b72;">from</span> <span style="color:#e6edf3;">anthropic</span> <span style="color:#ff7b72;">import</span> <span style="color:#d2a8ff;">Anthropic</span><br>
+          <span style="color:#e6edf3;">client</span> <span style="color:#ff7b72;">=</span> <span style="color:#d2a8ff;">Anthropic</span>(api_key=<span style="color:#a5d6ff;">"sk-ant-..."</span>)<br>
+          <br>
+          <span style="color:#484f58;"># now every function uses:</span><br>
+          <span style="color:#e6edf3;">client</span>.<span style="color:#e6edf3;">messages</span>.<span style="color:#d2a8ff;">create</span>(...)
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;">Why client.messages.create() — what does .messages mean?</div>
+      <p style="font-size:13px;color:#c9d1d9;line-height:1.75;margin-bottom:14px;">The Anthropic SDK is organized into namespaces. <code style="font-family:'JetBrains Mono',monospace;font-size:12px;background:#161b22;padding:2px 6px;border-radius:3px;">client.messages</code> is the "messages" section of the API — the one that handles conversations. Claude has other API endpoints too (like for embeddings), but we only use messages.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+        <div style="padding:12px;border-radius:6px;background:#161b22;border:1px solid var(--border);text-align:center;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--llm-color);">client</code>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px;">The Anthropic SDK object. Holds your API key.</div>
+        </div>
+        <div style="padding:12px;border-radius:6px;background:#161b22;border:1px solid var(--border);text-align:center;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--llm-color);">.messages</code>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px;">The messages API namespace — for chat/conversation calls.</div>
+        </div>
+        <div style="padding:12px;border-radius:6px;background:#161b22;border:1px solid var(--border);text-align:center;">
+          <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--llm-color);">.create(...)</code>
+          <div style="font-size:11px;color:var(--muted);margin-top:6px;">Creates a new message — sends the request, waits, returns Claude's response.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:14px 18px;border-radius:8px;background:rgba(188,140,255,0.08);border:1px solid rgba(188,140,255,0.3);font-size:13px;color:#c9d1d9;line-height:1.7;">
+      <strong style="color:var(--llm-color);">Interview answer:</strong> "I used the official Anthropic Python SDK. It handles authentication, request formatting, and response parsing. I create one client object at module level and reuse it across all API calls. To send a prompt I call <code style="font-family:'JetBrains Mono',monospace;font-size:12px;">client.messages.create()</code> with a system prompt, a user prompt, and a max_tokens limit — and get the response text back."
+    </div>
+  </div>
+
+  <!-- extract_client_card — FULL CODE -->
+  <div class="fn-card">
+    <div class="fn-card-top">
+      <div class="fn-badge" style="background:rgba(188,140,255,0.1);color:var(--llm-color);border:1px solid var(--llm-color)">llm.py</div>
+      <div>
+        <h3>extract_client_card(scraped_text)</h3>
+        <p>Sends all scraped website text to Claude and gets back a structured JSON with every piece of business information.</p>
+        <div class="fn-io-row">
+          <div class="fn-io-item"><span class="iolabel">in</span><code>scraped_text: str</code> — the full merged text from all scraped URLs</div>
+          <div class="fn-io-item"><span class="iolabel">out</span><code>str</code> — a JSON string</div>
+        </div>
+      </div>
+    </div>
+    <div class="code-annotate">
+      <div class="code-panel">
+        <div class="code-panel-header"><span class="cdot" style="background:#ff5f57"></span><span class="cdot" style="background:#febc2e"></span><span class="cdot" style="background:#28c840"></span> full code</div>
+        <pre class="full-code"><div class="code-line"><span class="ln">27</span><span class="lc"><span class="kw">def</span> <span class="fni">extract_client_card</span>(scraped_text):</span></div><div class="code-line"><span class="ln">28</span><span class="lc">    <span class="va">system</span> = <span class="str">"""You are a data extraction assistant</span></div><div class="code-line"><span class="ln">29</span><span class="lc"><span class="str">for Zap Group, an Israeli digital services company.</span></div><div class="code-line"><span class="ln">30</span><span class="lc"><span class="str">Your job is to extract structured business information</span></div><div class="code-line"><span class="ln">31</span><span class="lc"><span class="str">from raw scraped website text.</span></div><div class="code-line"><span class="ln">32</span><span class="lc"><span class="str">Return ONLY valid JSON — no markdown, no explanation."""</span></span></div><div class="code-line"><span class="ln">33</span><span class="lc"></span></div><div class="code-line"><span class="ln">34</span><span class="lc">    <span class="va">prompt</span> = <span class="str">f"""Extract all business information from</span></div><div class="code-line"><span class="ln">35</span><span class="lc"><span class="str">the following scraped data and return a JSON object</span></div><div class="code-line"><span class="ln">36</span><span class="lc"><span class="str">with these fields:</span></div><div class="code-line"><span class="ln">37</span><span class="lc"><span class="str"></span></div><div class="code-line"><span class="ln">38</span><span class="lc"><span class="str">{{</span></div><div class="code-line"><span class="ln">39</span><span class="lc"><span class="str">  "business_name": "Hebrew business name",</span></div><div class="code-line"><span class="ln">40</span><span class="lc"><span class="str">  "owner_name": "if found",</span></div><div class="code-line"><span class="ln">41</span><span class="lc"><span class="str">  "phone": "main phone number",</span></div><div class="code-line"><span class="ln">42</span><span class="lc"><span class="str">  "email": "if found",</span></div><div class="code-line"><span class="ln">43</span><span class="lc"><span class="str">  "address": "full address if found",</span></div><div class="code-line"><span class="ln">44</span><span class="lc"><span class="str">  "city": "city name",</span></div><div class="code-line"><span class="ln">45</span><span class="lc"><span class="str">  "services": ["list of services offered"],</span></div><div class="code-line"><span class="ln">46</span><span class="lc"><span class="str">  "brands": ["brands they work with"],</span></div><div class="code-line"><span class="ln">47</span><span class="lc"><span class="str">  "years_experience": "number or description",</span></div><div class="code-line"><span class="ln">48</span><span class="lc"><span class="str">  "description": "2-3 sentence Hebrew description",</span></div><div class="code-line"><span class="ln">49</span><span class="lc"><span class="str">  "testimonials": ["key customer quotes"],</span></div><div class="code-line"><span class="ln">50</span><span class="lc"><span class="str">  "unique_selling_points": ["what makes them stand out"],</span></div><div class="code-line"><span class="ln">51</span><span class="lc"><span class="str">  "notes_for_producer": ["observations for the Zap producer"]</span></div><div class="code-line"><span class="ln">52</span><span class="lc"><span class="str">}}</span></div><div class="code-line"><span class="ln">53</span><span class="lc"><span class="str"></span></div><div class="code-line"><span class="ln">54</span><span class="lc"><span class="str">SCRAPED DATA:</span></div><div class="code-line"><span class="ln">55</span><span class="lc"><span class="str">{scraped_text}"""</span></span></div><div class="code-line"><span class="ln">56</span><span class="lc"></span></div><div class="code-line"><span class="ln">57</span><span class="lc">    <span class="va">result</span> = <span class="fni">call_claude</span>(system, prompt, max_tokens=<span class="num">4096</span>)</span></div><div class="code-line"><span class="ln">58</span><span class="lc">    <span class="kw">if</span> <span class="va">result</span>.<span class="fni">startswith</span>(<span class="str">"```"</span>):</span></div><div class="code-line"><span class="ln">59</span><span class="lc">        <span class="va">result</span> = <span class="va">result</span>.<span class="fni">split</span>(<span class="str">"\n"</span>, <span class="num">1</span>)[<span class="num">1</span>].<span class="fni">rsplit</span>(<span class="str">"```"</span>, <span class="num">1</span>)[<span class="num">0</span>]</span></div><div class="code-line"><span class="ln">60</span><span class="lc">    <span class="kw">return</span> <span class="va">result</span></span></div></pre>
+      </div>
+      <div class="annot-panel">
+        <div class="annot-panel-header">Line by line</div>
+        <div class="annot-list">
+          <div class="annot-item important">
+            <div class="annot-item-code">system = """..."""</div>
+            <div class="annot-item-text"><strong>Triple-quoted string — the system prompt.</strong> Everything between the triple quotes is the string, even across multiple lines. The key instruction here is "Return ONLY valid JSON" — without this Claude adds explanations that break json.loads().</div>
+          </div>
+          <div class="annot-item highlight">
+            <div class="annot-item-code">prompt = f"""...
+{{
+  "business_name": "Hebrew business name",
+  ...
+}}
+SCRAPED DATA:
+{scraped_text}"""</div>
+            <div class="annot-item-text"><strong>f-string with escaped braces and one real variable.</strong> {{ and }} are escaped braces — Claude receives literal { and }. {scraped_text} (single braces) is the real variable — Python injects the actual scraped text here. The JSON schema tells Claude exactly what fields to extract and what to name them.</div>
+          </div>
+          <div class="annot-item warn">
+            <div class="annot-item-code">if result.startswith("```"):
+    result = result.split("\n", 1)[1].rsplit("```", 1)[0]</div>
+            <div class="annot-item-text"><strong>Strips markdown code fences if Claude added them.</strong> split("\n", 1)[1] removes the first line (```json). rsplit("```", 1)[0] removes the closing ``` from the end. The 1 limits each split to once — protecting against content that might contain backticks.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="prompt-section">
+      <h4>What Claude actually receives</h4>
+      <div class="prompt-box system">
+        <div class="prompt-box-label">🟠 System Prompt <span>— Claude's identity and format rules for this call</span></div>
+        <div class="prompt-text">You are a data extraction assistant for Zap Group, an Israeli digital services company.
+Your job is to extract structured business information from raw scraped website text.
+Return ONLY valid JSON — no markdown, no explanation.</div>
+        <div class="prompt-note">This is the same every time — doesn't change per client. The key constraint is "Return ONLY valid JSON."</div>
+      </div>
+      <div class="prompt-box user">
+        <div class="prompt-box-label">🔵 User Prompt <span>— the actual task with schema + injected data</span></div>
+        <div class="prompt-text">Extract all business information from the following scraped data and return a JSON object with these fields:
+
+{
+  "business_name": "Hebrew business name",
+  "owner_name": "if found",
+  "phone": "main phone number",
+  "email": "if found",
+  "address": "full address if found",
+  "city": "city name",
+  "services": ["list of services offered"],
+  "brands": ["brands they work with"],
+  "years_experience": "number or description",
+  "description": "2-3 sentence Hebrew description",
+  "testimonials": ["key customer quotes"],
+  "unique_selling_points": ["what makes them stand out"],
+  "notes_for_producer": ["observations for the Zap producer"]
+}
+
+SCRAPED DATA:
+<span class="inject">=== Source: https://imazganim.co.il (homepage) ===
+יגאל מזגנים
+שירותי מיזוג אוויר
+התקנה, תיקון ושדרוג מזגנים
+טלפון: 072-3977065
+... (all scraped text from all URLs)</span></div>
+        <div class="prompt-note">The yellow highlighted part is where {scraped_text} gets injected. Everything else is the fixed schema template.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- generate_welcome_message — full -->
+  <div class="fn-card">
+    <div class="fn-card-top">
+      <div class="fn-badge" style="background:rgba(188,140,255,0.1);color:var(--llm-color);border:1px solid var(--llm-color)">llm.py</div>
+      <div>
+        <h3>generate_welcome_message(client_card_json)</h3>
+        <p>Writes the personalized WhatsApp/email message the client receives after purchasing. Uses the extracted JSON to personalize it.</p>
+        <div class="fn-io-row">
+          <div class="fn-io-item"><span class="iolabel">in</span><code>client_card_json: str</code></div>
+          <div class="fn-io-item"><span class="iolabel">out</span><code>str</code> — Hebrew message</div>
+        </div>
+      </div>
+    </div>
+    <div class="code-annotate">
+      <div class="code-panel">
+        <div class="code-panel-header"><span class="cdot" style="background:#ff5f57"></span><span class="cdot" style="background:#febc2e"></span><span class="cdot" style="background:#28c840"></span> full code</div>
+        <pre class="full-code"><div class="code-line"><span class="ln">92</span><span class="lc"><span class="kw">def</span> <span class="fni">generate_welcome_message</span>(client_card_json):</span></div><div class="code-line"><span class="ln">93</span><span class="lc">    <span class="va">system</span> = <span class="str">"""You are a friendly customer success</span></div><div class="code-line"><span class="ln">94</span><span class="lc"><span class="str">representative at Zap Group.</span></div><div class="code-line"><span class="ln">95</span><span class="lc"><span class="str">Write a warm, professional welcome message in Hebrew.</span></div><div class="code-line"><span class="ln">96</span><span class="lc"><span class="str">The message will be sent to a new client who just</span></div><div class="code-line"><span class="ln">97</span><span class="lc"><span class="str">purchased a website + Dapei Zahav minisite package."""</span></span></div><div class="code-line"><span class="ln">98</span><span class="lc"></span></div><div class="code-line"><span class="ln">99</span><span class="lc">    <span class="va">prompt</span> = <span class="str">f"""Write a personalized onboarding welcome</span></div><div class="code-line"><span class="ln">100</span><span class="lc"><span class="str">message (email/WhatsApp) for this new client.</span></div><div class="code-line"><span class="ln">101</span><span class="lc"><span class="str"></span></div><div class="code-line"><span class="ln">102</span><span class="lc"><span class="str">The message should:</span></div><div class="code-line"><span class="ln">103</span><span class="lc"><span class="str">1. Welcome them warmly by name/business name</span></div><div class="code-line"><span class="ln">104</span><span class="lc"><span class="str">2. Show we know their business (reference their services)</span></div><div class="code-line"><span class="ln">105</span><span class="lc"><span class="str">3. Mention draft website and minisite are ready</span></div><div class="code-line"><span class="ln">106</span><span class="lc"><span class="str">4. Include: [LINK_DRAFT_WEBSITE] and [LINK_DRAFT_MINISITE]</span></div><div class="code-line"><span class="ln">107</span><span class="lc"><span class="str">5. Explain what to expect in the onboarding process</span></div><div class="code-line"><span class="ln">108</span><span class="lc"><span class="str">6. Ask them to confirm key details — phrase it as</span></div><div class="code-line"><span class="ln">109</span><span class="lc"><span class="str">   questions TO the client: "האם המספר שלך הוא X?"</span></div><div class="code-line"><span class="ln">110</span><span class="lc"><span class="str">   not "פרטי הטלפון: X". Their phone is their number,</span></div><div class="code-line"><span class="ln">111</span><span class="lc"><span class="str">   not ours — never present it as if it belongs to Zap</span></div><div class="code-line"><span class="ln">112</span><span class="lc"><span class="str">7. Sign off from "צוות זאפ דפי זהב"</span></div><div class="code-line"><span class="ln">113</span><span class="lc"><span class="str"></span></div><div class="code-line"><span class="ln">114</span><span class="lc"><span class="str">Keep it concise — no more than 15 lines.</span></div><div class="code-line"><span class="ln">115</span><span class="lc"><span class="str">Warm but professional.</span></div><div class="code-line"><span class="ln">116</span><span class="lc"><span class="str"></span></div><div class="code-line"><span class="ln">117</span><span class="lc"><span class="str">CLIENT DATA:</span></div><div class="code-line"><span class="ln">118</span><span class="lc"><span class="str">{client_card_json}"""</span></span></div><div class="code-line"><span class="ln">119</span><span class="lc"></span></div><div class="code-line"><span class="ln">120</span><span class="lc">    <span class="kw">return</span> <span class="fni">call_claude</span>(system, prompt, max_tokens=<span class="num">2048</span>)</span></div></pre>
+      </div>
+      <div class="annot-panel">
+        <div class="annot-panel-header">Line by line</div>
+        <div class="annot-list">
+          <div class="annot-item">
+            <div class="annot-item-code">system = """You are a friendly customer success representative..."""</div>
+            <div class="annot-item-text"><strong>Different persona than extract_client_card.</strong> There, Claude was a "data extraction assistant." Here it's "friendly customer success rep." Same model, completely different personality because the system prompt changed. This affects tone — warmer, more personal.</div>
+          </div>
+          <div class="annot-item important">
+            <div class="annot-item-code">6. Ask them to confirm key details — phrase it as
+   questions TO the client: "האם המספר שלך הוא X?"
+   not "פרטי הטלפון: X". Their phone is their number,
+   not ours — never present it as if it belongs to Zap</div>
+            <div class="annot-item-text"><strong>This is a bug fix embedded in the prompt.</strong> Without this rule, Claude wrote "פרטי הטלפון: 072-3977065" — which reads as if 072-3977065 is Zap's contact number. The explicit instruction and the counter-example ("not 'פרטי הטלפון: X'") fixed it. Negative examples in prompts are very effective.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">[LINK_DRAFT_WEBSITE] and [LINK_DRAFT_MINISITE]</div>
+            <div class="annot-item-text"><strong>Literal placeholders in the output.</strong> Claude writes these exact strings in the message. In a production system you'd replace them with real Vercel URLs after deployment. In this prototype, a human pastes the links manually.</div>
+          </div>
+          <div class="annot-item good">
+            <div class="annot-item-code">max_tokens=2048</div>
+            <div class="annot-item-text"><strong>Lower limit = cheaper + faster.</strong> The message is limited to 15 lines. 2048 tokens ≈ 1500 words — far more than needed. Using a lower limit saves API cost and makes the call slightly faster since Claude stops earlier.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════
+     CRM.PY
+════════════════════════════════════════════════════ -->
+<div class="file-section" id="crm-py">
+  <div class="file-header fh-crm">
+    <div class="file-icon">💾</div>
+    <div>
+      <h2 style="color:var(--crm-color)">crm.py</h2>
+      <p>One function. Simulates saving the full onboarding event to a CRM — in production this would be an API call to Salesforce/HubSpot.</p>
+    </div>
+  </div>
+
+  <div class="fn-card">
+    <div class="fn-card-top">
+      <div class="fn-badge" style="background:rgba(210,153,34,0.1);color:var(--crm-color);border:1px solid var(--crm-color)">crm.py</div>
+      <div>
+        <h3>log_to_crm(client_card, welcome_message, output_dir)</h3>
+        <p>Builds a structured dict representing a CRM entry, then saves it as crm_log.json. Also prints a confirmation summary.</p>
+        <div class="fn-io-row">
+          <div class="fn-io-item"><span class="iolabel">in</span><code>client_card: str</code> JSON string</div>
+          <div class="fn-io-item"><span class="iolabel">in</span><code>welcome_message: str</code></div>
+          <div class="fn-io-item"><span class="iolabel">in</span><code>output_dir: str</code> path to output/</div>
+          <div class="fn-io-item"><span class="iolabel">out</span><code>dict</code> the CRM entry (also written to disk)</div>
+        </div>
+      </div>
+    </div>
+    <div class="code-annotate">
+      <div class="code-panel">
+        <div class="code-panel-header"><span class="cdot" style="background:#ff5f57"></span><span class="cdot" style="background:#febc2e"></span><span class="cdot" style="background:#28c840"></span> full code</div>
+        <pre class="full-code"><div class="code-line"><span class="ln">11</span><span class="lc"><span class="kw">def</span> <span class="fni">log_to_crm</span>(client_card, welcome_message, output_dir):</span></div><div class="code-line"><span class="ln">12</span><span class="lc">    <span class="va">crm_entry</span> = {</span></div><div class="code-line"><span class="ln">13</span><span class="lc">        <span class="str">"crm_id"</span>: <span class="str">f"ZAP-{datetime.now().strftime('%Y%m%d%H%M%S')}"</span>,</span></div><div class="code-line"><span class="ln">14</span><span class="lc">        <span class="str">"created_at"</span>: <span class="va">datetime</span>.<span class="fni">now</span>().<span class="fni">isoformat</span>(),</span></div><div class="code-line"><span class="ln">15</span><span class="lc">        <span class="str">"status"</span>: <span class="str">"onboarding_initiated"</span>,</span></div><div class="code-line"><span class="ln">16</span><span class="lc">        <span class="str">"client_data"</span>: <span class="va">json</span>.<span class="fni">loads</span>(client_card)</span></div><div class="code-line"><span class="ln">17</span><span class="lc">            <span class="kw">if</span> <span class="fni">isinstance</span>(client_card, <span class="va">str</span>)</span></div><div class="code-line"><span class="ln">18</span><span class="lc">            <span class="kw">else</span> client_card,</span></div><div class="code-line"><span class="ln">19</span><span class="lc">        <span class="str">"actions_taken"</span>: [</span></div><div class="code-line"><span class="ln">20</span><span class="lc">            {</span></div><div class="code-line"><span class="ln">21</span><span class="lc">                <span class="str">"action"</span>: <span class="str">"digital_assets_scanned"</span>,</span></div><div class="code-line"><span class="ln">22</span><span class="lc">                <span class="str">"timestamp"</span>: <span class="va">datetime</span>.<span class="fni">now</span>().<span class="fni">isoformat</span>(),</span></div><div class="code-line"><span class="ln">23</span><span class="lc">                <span class="str">"details"</span>: <span class="str">"Automated scan of client's digital presence"</span>,</span></div><div class="code-line"><span class="ln">24</span><span class="lc">            },</span></div><div class="code-line"><span class="ln">25</span><span class="lc">            {</span></div><div class="code-line"><span class="ln">26</span><span class="lc">                <span class="str">"action"</span>: <span class="str">"client_card_generated"</span>,</span></div><div class="code-line"><span class="ln">27</span><span class="lc">                <span class="str">"timestamp"</span>: <span class="va">datetime</span>.<span class="fni">now</span>().<span class="fni">isoformat</span>(),</span></div><div class="code-line"><span class="ln">28</span><span class="lc">                <span class="str">"details"</span>: <span class="str">"AI-generated client card created"</span>,</span></div><div class="code-line"><span class="ln">29</span><span class="lc">            },</span></div><div class="code-line"><span class="ln">30</span><span class="lc">            {</span></div><div class="code-line"><span class="ln">31</span><span class="lc">                <span class="str">"action"</span>: <span class="str">"welcome_message_sent"</span>,</span></div><div class="code-line"><span class="ln">32</span><span class="lc">                <span class="str">"timestamp"</span>: <span class="va">datetime</span>.<span class="fni">now</span>().<span class="fni">isoformat</span>(),</span></div><div class="code-line"><span class="ln">33</span><span class="lc">                <span class="str">"details"</span>: <span class="str">"Personalized onboarding message auto-sent"</span>,</span></div><div class="code-line"><span class="ln">34</span><span class="lc">                <span class="str">"channel"</span>: <span class="str">"email"</span>,</span></div><div class="code-line"><span class="ln">35</span><span class="lc">            },</span></div><div class="code-line"><span class="ln">36</span><span class="lc">            {</span></div><div class="code-line"><span class="ln">37</span><span class="lc">                <span class="str">"action"</span>: <span class="str">"draft_website_generated"</span>,</span></div><div class="code-line"><span class="ln">38</span><span class="lc">                <span class="str">"timestamp"</span>: <span class="va">datetime</span>.<span class="fni">now</span>().<span class="fni">isoformat</span>(),</span></div><div class="code-line"><span class="ln">39</span><span class="lc">                <span class="str">"details"</span>: <span class="str">"5-page draft website generated"</span>,</span></div><div class="code-line"><span class="ln">40</span><span class="lc">            },</span></div><div class="code-line"><span class="ln">41</span><span class="lc">            {</span></div><div class="code-line"><span class="ln">42</span><span class="lc">                <span class="str">"action"</span>: <span class="str">"draft_minisite_generated"</span>,</span></div><div class="code-line"><span class="ln">43</span><span class="lc">                <span class="str">"timestamp"</span>: <span class="va">datetime</span>.<span class="fni">now</span>().<span class="fni">isoformat</span>(),</span></div><div class="code-line"><span class="ln">44</span><span class="lc">                <span class="str">"details"</span>: <span class="str">"Dapei Zahav minisite draft generated"</span>,</span></div><div class="code-line"><span class="ln">45</span><span class="lc">            },</span></div><div class="code-line"><span class="ln">46</span><span class="lc">        ],</span></div><div class="code-line"><span class="ln">47</span><span class="lc">        <span class="str">"welcome_message_preview"</span>: welcome_message[:<span class="num">500</span>]</span></div><div class="code-line"><span class="ln">48</span><span class="lc">            + <span class="str">"..."</span> <span class="kw">if</span> <span class="fni">len</span>(welcome_message) > <span class="num">500</span></span></div><div class="code-line"><span class="ln">49</span><span class="lc">            <span class="kw">else</span> welcome_message,</span></div><div class="code-line"><span class="ln">50</span><span class="lc">        <span class="str">"deliverables"</span>: {</span></div><div class="code-line"><span class="ln">51</span><span class="lc">            <span class="str">"client_card"</span>: <span class="str">"client_card.json"</span>,</span></div><div class="code-line"><span class="ln">52</span><span class="lc">            <span class="str">"client_card_readable"</span>: <span class="str">"client_card.md"</span>,</span></div><div class="code-line"><span class="ln">53</span><span class="lc">            <span class="str">"welcome_message"</span>: <span class="str">"welcome_message.md"</span>,</span></div><div class="code-line"><span class="ln">54</span><span class="lc">            <span class="str">"draft_website"</span>: <span class="str">"website/"</span>,</span></div><div class="code-line"><span class="ln">55</span><span class="lc">            <span class="str">"draft_minisite"</span>: <span class="str">"minisite/index.html"</span>,</span></div><div class="code-line"><span class="ln">56</span><span class="lc">        },</span></div><div class="code-line"><span class="ln">57</span><span class="lc">    }</span></div><div class="code-line"><span class="ln">58</span><span class="lc"></span></div><div class="code-line"><span class="ln">59</span><span class="lc">    <span class="va">path</span> = <span class="va">os</span>.<span class="va">path</span>.<span class="fni">join</span>(output_dir, <span class="str">"crm_log.json"</span>)</span></div><div class="code-line"><span class="ln">60</span><span class="lc">    <span class="kw">with</span> <span class="fni">open</span>(path, <span class="str">"w"</span>, encoding=<span class="str">"utf-8"</span>) <span class="kw">as</span> <span class="va">f</span>:</span></div><div class="code-line"><span class="ln">61</span><span class="lc">        <span class="va">json</span>.<span class="fni">dump</span>(crm_entry, <span class="va">f</span>, ensure_ascii=<span class="k2">False</span>, indent=<span class="num">2</span>)</span></div><div class="code-line"><span class="ln">62</span><span class="lc"></span></div><div class="code-line"><span class="ln">63</span><span class="lc">    <span class="fni">print</span>(<span class="str">f"\n  CRM entry logged: {crm_entry['crm_id']}"</span>)</span></div><div class="code-line"><span class="ln">64</span><span class="lc">    <span class="fni">print</span>(<span class="str">f"  Status: {crm_entry['status']}"</span>)</span></div><div class="code-line"><span class="ln">65</span><span class="lc">    <span class="fni">print</span>(<span class="str">f"  Actions: {len(crm_entry['actions_taken'])} recorded"</span>)</span></div><div class="code-line"><span class="ln">66</span><span class="lc">    <span class="kw">return</span> <span class="va">crm_entry</span></span></div></pre>
+      </div>
+      <div class="annot-panel">
+        <div class="annot-panel-header">Line by line</div>
+        <div class="annot-list">
+          <div class="annot-item">
+            <div class="annot-item-code">f"ZAP-{datetime.now().strftime('%Y%m%d%H%M%S')}"</div>
+            <div class="annot-item-text"><strong>Generates a unique ID from the current time.</strong> strftime formats a datetime object into a string. '%Y%m%d%H%M%S' → "20260425143022". Combined with "ZAP-" prefix: "ZAP-20260425143022". Running the pipeline twice in the same second would produce the same ID — a known limitation of this prototype.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">datetime.now().isoformat()</div>
+            <div class="annot-item-text"><strong>ISO 8601 timestamp.</strong> Produces "2026-04-25T14:30:22.123456". This is the international standard format that all CRM systems, databases, and APIs understand. Using it makes the data portable.</div>
+          </div>
+          <div class="annot-item important">
+            <div class="annot-item-code">"client_data": json.loads(client_card)
+    if isinstance(client_card, str)
+    else client_card,</div>
+            <div class="annot-item-text"><strong>Inline ternary — handles two possible types.</strong> client_card might arrive as a string (JSON text) or already as a dict. isinstance(client_card, str) checks its type. If it's a string, json.loads() parses it into a dict. If it's already a dict, use it directly. This makes the function flexible.</div>
+          </div>
+          <div class="annot-item highlight">
+            <div class="annot-item-code">"welcome_message_preview": welcome_message[:500]
+    + "..." if len(welcome_message) > 500
+    else welcome_message,</div>
+            <div class="annot-item-text"><strong>String slicing + conditional.</strong> welcome_message[:500] takes the first 500 characters. If the message is longer, append "...". If it's shorter, use the full message. This keeps the CRM entry compact — the full message is saved separately in welcome_message.md.</div>
+          </div>
+          <div class="annot-item warn">
+            <div class="annot-item-code">json.dump(crm_entry, f, ensure_ascii=False, indent=2)</div>
+            <div class="annot-item-text"><strong>Writes Python dict to disk as formatted JSON.</strong> ensure_ascii=False means Hebrew characters are saved as-is (not as \uXXXX escape sequences). indent=2 makes the JSON human-readable with 2-space indentation. Without indent, it would be one long unreadable line.</div>
+          </div>
+          <div class="annot-item">
+            <div class="annot-item-code">"actions_taken": [ {...}, {...}, {...}, {...}, {...} ]</div>
+            <div class="annot-item-text"><strong>Audit trail — 5 actions recorded.</strong> In a real CRM each action would be logged separately as it happens. Here we log them all at the end with the same timestamp, which is a simplification. But the structure is identical to what a real CRM entry would look like.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div style="text-align:center;padding:40px 0 0;color:var(--muted);font-size:13px;border-top:1px solid var(--border);margin-top:20px;">
+  <a href="code-explainer.html" style="color:var(--main-color);text-decoration:none;">← Code Explainer</a>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  <a href="code-walkthrough.html" style="color:var(--main-color);text-decoration:none;">Code Walkthrough</a>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  <a href="llm-deep-dive.html" style="color:var(--llm-color);text-decoration:none;">llm.py Deep Dive</a>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  Zap Onboarding AI — Interview Prep
+</div>
+
+</div><!-- /page -->
+</body>
+</html>
