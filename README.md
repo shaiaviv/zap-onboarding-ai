@@ -6,6 +6,21 @@ Built as a prototype for the **GenAI Exploration Lead** hiring challenge at Zap 
 
 ---
 
+## Code Explanation
+
+An interactive line-by-line walkthrough of every file, function, and design decision in this project — built as a study kit for anyone who wants to understand how it works.
+
+**[shaiaviv.github.io/zap-onboarding-ai](https://shaiaviv.github.io/zap-onboarding-ai)**
+
+| Page | What it covers |
+|---|---|
+| [Code Walkthrough](https://shaiaviv.github.io/zap-onboarding-ai/code-walkthrough.html) | Every line annotated — what it does, why it's there, what it returns |
+| [Code Explainer](https://shaiaviv.github.io/zap-onboarding-ai/code-explainer.html) | High-level overview of the full pipeline |
+| [LLM Deep Dive](https://shaiaviv.github.io/zap-onboarding-ai/llm-deep-dive.html) | Prompt engineering breakdown — every prompt instruction explained |
+| [Full Code Dive](https://shaiaviv.github.io/zap-onboarding-ai/full-code-dive.html) | Architecture, data flow, and design decisions |
+
+---
+
 ## The Problem
 
 When a new client buys a Zap package (5-page website + Dapei Zahav minisite), a human account manager currently has to:
