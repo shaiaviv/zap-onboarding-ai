@@ -148,7 +148,7 @@ def discover_assets(business_name, phone, location):
     # sites well when the phone number anchors the search.
     # Avoid quoting the phone number alone — it confuses non-Israeli number lookup engines.
     queries = [
-        f"{phone} מזגנים",                            # phone + category (most reliable)
+        f"{phone} {location}",                         # phone + city — unique anchor, works for any business type
         f"{phone} {business_name}",                    # phone + name
         f"{business_name} {location}",                 # name + location (no phone)
         f"{business_name} site:d.co.il OR site:b144.co.il OR site:facebook.com",
