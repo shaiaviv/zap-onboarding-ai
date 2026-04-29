@@ -206,6 +206,15 @@ pip install -r requirements.txt
 echo "ANTHROPIC_API_KEY=your_key_here" > .env
 ```
 
+The pipeline auto-deploys the generated website and minisite to Vercel so the welcome message contains real links. Requires the Vercel CLI:
+
+```bash
+npm install -g vercel
+vercel login
+```
+
+If Vercel is not installed, the pipeline still runs — the welcome message will contain placeholder links instead of real URLs.
+
 ### Run — Discovery mode (real CRM trigger simulation)
 
 ```bash
