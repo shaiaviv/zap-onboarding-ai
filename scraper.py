@@ -151,7 +151,7 @@ def discover_assets(business_name, phone, location):
         f"{phone} {location}",                         # phone + city — unique anchor, works for any business type
         f"{phone} {business_name}",                    # phone + name
         f"{business_name} {location}",                 # name + location (no phone)
-        f"{business_name} site:d.co.il OR site:b144.co.il OR site:facebook.com",
+        f"{business_name} site:d.co.il OR site:b144.co.il",
     ]
 
     candidate_urls = set()
