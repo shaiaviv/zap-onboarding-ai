@@ -89,11 +89,14 @@ CLIENT DATA:
     return call_claude(system, prompt, max_tokens=4096)
 
 
-def generate_welcome_message(client_card_json):
+def generate_welcome_message(client_card_json, website_url=None, minisite_url=None):
     """Generate a personalized onboarding welcome message for the client."""
     system = """You are a friendly customer success representative at Zap Group.
 Write a warm, professional welcome message in Hebrew.
 The message will be sent to a new client who just purchased a website + Dapei Zahav minisite package."""
+
+    website_link = website_url or "[LINK_DRAFT_WEBSITE]"
+    minisite_link = minisite_url or "[LINK_DRAFT_MINISITE]"
 
     prompt = f"""Write a personalized onboarding welcome message (email/WhatsApp) for this new client.
 
@@ -101,7 +104,9 @@ The message should:
 1. Welcome them warmly by name/business name
 2. Show that we already know about their business (reference specific services they offer)
 3. Mention that we've prepared a draft website and Dapei Zahav minisite for them to review
-4. Include placeholder links: [LINK_DRAFT_WEBSITE] and [LINK_DRAFT_MINISITE]
+4. Include these exact links (already live — use them as-is):
+   - Draft website: {website_link}
+   - Draft Dapei Zahav minisite: {minisite_link}
 5. Explain what to expect in the onboarding process
 6. Ask them to confirm key details — phrase it as questions TO the client: "האם המספר שלך הוא X?" not "פרטי הטלפון: X". Their phone number is their number, not ours — never present it as if it belongs to Zap
 7. Sign off from "צוות זאפ דפי זהב"

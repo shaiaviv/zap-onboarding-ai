@@ -19,6 +19,8 @@ import os
 import sys
 import json
 import argparse
+import subprocess
+import re
 
 from scraper import scrape_client, scrape_multiple, discover_assets, format_scraped_data, collect_images
 from llm import (
@@ -32,6 +34,27 @@ from crm import log_to_crm
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "output")
 DEMO_URL = "https://www.imazganim.co.il/"
+
+
+def deploy_to_vercel(folder_path, project_name):
+    """Deploy a folder to Vercel and return the live URL, or None if it fails."""
+    try:
+        result = subprocess.run(
+            ["vercel", "deploy", "--prod", "--yes", "--name", project_name],
+            cwd=folder_path,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        # Vercel prints the deployment URL to stdout — find the https:// line
+        urls = re.findall(r"https://[^\s]+\.vercel\.app", result.stdout + result.stderr)
+        if urls:
+            return urls[-1]  # last URL is the production one
+        print(f"  Vercel deploy warning: no URL found in output")
+        return None
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        print(f"  Vercel deploy failed: {e}")
+        return None
 
 
 def ensure_output_dirs():
@@ -89,12 +112,24 @@ def run_pipeline(scraped_results, base_url=None):
     minisite_html = generate_draft_minisite(client_card_json, images)
     save_file("minisite/index.html", minisite_html)
 
-    # Step 5: Onboarding welcome message — sent AFTER drafts exist so links are real
+    # Step 4b: Deploy both drafts to Vercel to get real URLs
+    print(f"\n{'─' * 60}")
+    print("STEP 4b: Deploying drafts to Vercel")
+    print(f"{'─' * 60}")
+    client_name = json.loads(client_card_json).get("business_name_english", "client").lower().replace(" ", "-")
+    website_url = deploy_to_vercel(os.path.join(OUTPUT_DIR, "website"), f"{client_name}-website")
+    minisite_url = deploy_to_vercel(os.path.join(OUTPUT_DIR, "minisite"), f"{client_name}-minisite")
+    if website_url:
+        print(f"  Website live: {website_url}")
+    if minisite_url:
+        print(f"  Minisite live: {minisite_url}")
+
+    # Step 5: Onboarding welcome message — after deployment so links are real
     print(f"\n{'─' * 60}")
     print("STEP 5: Generating onboarding welcome message (AI)")
     print(f"{'─' * 60}")
     print("  Generating personalized welcome message...")
-    welcome_msg = generate_welcome_message(client_card_json)
+    welcome_msg = generate_welcome_message(client_card_json, website_url=website_url, minisite_url=minisite_url)
     save_file("welcome_message.md", welcome_msg)
 
     # Step 6: CRM log
